@@ -9,6 +9,9 @@ package com.irontigers.robot.subsystems;
 
 import com.irontigers.robot.Robot;
 import com.irontigers.robot.Constants.Drive;
+import com.irontigers.robot.sim.CANSparkMaxSim;
+import com.irontigers.robot.sim.DifferentialDriveCompat;
+import com.irontigers.robot.sim.NavXSim;
 import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANEncoder;
 import com.revrobotics.CANSparkMax;
@@ -26,6 +29,7 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
 import edu.wpi.first.wpilibj.simulation.SimDeviceSim;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.util.Units;
@@ -40,7 +44,7 @@ public class DriveSystem extends SubsystemBase {
   private SpeedControllerGroup leftMotors;
   private SpeedControllerGroup rightMotors;
 
-  private DifferentialDrive drive;
+  private DifferentialDriveCompat drive;
 
   private AHRS navX;
 
@@ -49,16 +53,17 @@ public class DriveSystem extends SubsystemBase {
 
   private DifferentialDriveOdometry odometer;
   private Pose2d robotPosition;
+  private final Field2d gameField;
 
   private ShuffleboardTab tab;
   private NetworkTableEntry yOffset;
 
   // Simulation objects
-  DifferentialDrivetrainSim myDriveSim;
-  SimDeviceSim frontLeftSim;
-  SimDeviceSim backLeftSim;
-  SimDeviceSim frontRightSim;
-  SimDeviceSim backRightSim;
+  private DifferentialDrivetrainSim driveSim;
+  private CANSparkMaxSim frontLeftSim;
+  private CANSparkMaxSim frontRightSim;
+  private NavXSim navXSim;
+
   private final String positionKey = "Position";
   private final String velocityKey = "Velocity";
 
@@ -84,33 +89,34 @@ public class DriveSystem extends SubsystemBase {
     rightEncoder = frontRight.getEncoder();
     rightEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
 
-    drive = new DifferentialDrive(leftMotors, rightMotors);
+    drive = new DifferentialDriveCompat(leftMotors, rightMotors);
 
     navX = new AHRS();
 
-    odometer = new DifferentialDriveOdometry(Rotation2d.fromDegrees(-navX.getAngle()), new Pose2d(Units.feetToMeters(42.4375), Units.feetToMeters(13.46875), Rotation2d.fromDegrees(0)));
+    odometer = new DifferentialDriveOdometry(Rotation2d.fromDegrees(-navX.getAngle()),
+        new Pose2d(Units.feetToMeters(42.4375), Units.feetToMeters(13.46875), Rotation2d.fromDegrees(0)));
+    
+    gameField = new Field2d();
 
 
     if (!Robot.isReal()) {
-      myDriveSim = new DifferentialDrivetrainSim(
-        DCMotor.getFalcon500(1),
-        7.29, 
-        7.5, 
-        110.0,
+      driveSim = new DifferentialDrivetrainSim(
+        DCMotor.getNEO(2),
+        8.45, 
+        3, 
+        49.8952,
         Units.inchesToMeters(3),
-        0.7112,
+        Units.inchesToMeters(26),
         null//VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005)  // Line with error
       );
 
-      frontLeftSim = new SimDeviceSim(getDeviceKey(Drive.FRNT_LFT));
-      backLeftSim = new SimDeviceSim(getDeviceKey(Drive.BCK_LFT));
-      frontRightSim = new SimDeviceSim(getDeviceKey(Drive.FRNT_RT));
-      backRightSim = new SimDeviceSim(getDeviceKey(Drive.BCK_RT));
-    }
-  }
+      frontLeftSim = new CANSparkMaxSim(Drive.FRNT_LFT);
+      frontRightSim = new CANSparkMaxSim(Drive.FRNT_RT);
 
-  private String getDeviceKey(int id) {
-    return "SPARK MAX [" + id + "]";
+      navXSim = new NavXSim();
+
+      register();
+    }
   }
 
   private double getLeftDistance() {
@@ -129,7 +135,8 @@ public class DriveSystem extends SubsystemBase {
     leftEncoder.setPosition(0);
     rightEncoder.setPosition(0);
     
-    odometer.resetPosition(new Pose2d( Units.feetToMeters(42.4375), Units.feetToMeters(getStartingYCoordinateFeet()), Rotation2d.fromDegrees(0)), Rotation2d.fromDegrees(-navX.getAngle()));
+    odometer.resetPosition(new Pose2d(Units.feetToMeters(42.4375), Units.feetToMeters(getStartingYCoordinateFeet()),
+        Rotation2d.fromDegrees(0)), Rotation2d.fromDegrees(-navX.getAngle()));
   }
 
   public void drive(double ySpeed, double rotation) {
@@ -141,12 +148,15 @@ public class DriveSystem extends SubsystemBase {
     // This method will be called once per scheduler run
 
     robotPosition = odometer.update(Rotation2d.fromDegrees(-navX.getAngle()), getLeftDistance(), getRightDistance());
+    gameField.setRobotPose(robotPosition);
 
     SmartDashboard.putNumber("Left Encoder Distance m", getLeftDistance());
     SmartDashboard.putNumber("Right Encoder Distance m", getRightDistance());
 
     SmartDashboard.putNumber("Robot x Delta Pos", robotPosition.getTranslation().getX());
     SmartDashboard.putNumber("Robot Y Delta Pos", robotPosition.getTranslation().getY());
+
+    SmartDashboard.putData(gameField);
   }
 
   public Pose2d getRobotPosition() {
@@ -156,19 +166,17 @@ public class DriveSystem extends SubsystemBase {
   @Override
   public void simulationPeriodic() {
 
-    myDriveSim.setInputs(frontLeft.get() * RobotController.getInputVoltage(),
-                         frontRight.get() * RobotController.getInputVoltage());
+    driveSim.setInputs(drive.getLeftMotorOutput() * RobotController.getInputVoltage(),
+        -drive.getRightMotorOutput() * RobotController.getInputVoltage());
 
-    myDriveSim.update(.02);                     
+    driveSim.update(0.02);                     
 
-    SimDouble frontLeftPosition = frontLeftSim.getDouble(positionKey);
-    SimDouble frontRightPosition = frontRightSim.getDouble(positionKey);
-    frontLeftPosition.set(myDriveSim.getLeftPositionMeters());
-    frontRightPosition.set(myDriveSim.getRightPositionMeters());
+    frontLeftSim.setPosition(driveSim.getLeftPositionMeters());
+    frontRightSim.setPosition(-driveSim.getRightPositionMeters());
 
-    SimDouble frontLeftVelocity = frontLeftSim.getDouble(velocityKey);
-    SimDouble frontRightVelocity = frontRightSim.getDouble(velocityKey);
-    frontLeftVelocity.set(myDriveSim.getLeftVelocityMetersPerSecond());
-    frontRightVelocity.set(myDriveSim.getRightVelocityMetersPerSecond());
+    frontLeftSim.setVelocity(driveSim.getLeftVelocityMetersPerSecond());
+    frontRightSim.setVelocity(-driveSim.getRightVelocityMetersPerSecond());
+
+    navXSim.setAngle(driveSim.getHeading().getDegrees());
   }
 }
