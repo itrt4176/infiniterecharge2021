@@ -7,13 +7,10 @@ public class CANSparkMaxSim extends SimDeviceSim {
     private SimDouble postion;
     private SimDouble velocity;
 
-    private double speed;
-
     public CANSparkMaxSim(int id) {
         super("SPARK MAX [" + id + "]");
         postion = getDouble("Position");
         velocity = getDouble("Velocity");
-        speed = 0;
     }
 
     public void setPosition(double pos) {
