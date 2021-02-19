@@ -7,31 +7,36 @@
 
 package com.irontigers.robot.subsystems;
 
-import com.irontigers.robot.Robot;
 import com.irontigers.robot.Constants.Drive;
+
+import java.io.IOException;
+import java.nio.file.Path;
+
+import com.irontigers.robot.Robot;
 import com.irontigers.robot.sim.CANSparkMaxSim;
 import com.irontigers.robot.sim.DifferentialDriveCompat;
 import com.irontigers.robot.sim.NavXSim;
 import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANEncoder;
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import com.revrobotics.CANSparkMaxLowLevel;
 
-import edu.wpi.first.hal.SimDouble;
 import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
-import edu.wpi.first.wpilibj.simulation.SimDeviceSim;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.trajectory.Trajectory;
+import edu.wpi.first.wpilibj.trajectory.TrajectoryUtil;
 import edu.wpi.first.wpilibj.util.Units;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -75,15 +80,15 @@ public class DriveSystem extends SubsystemBase {
     tab = Shuffleboard.getTab("Tab 3");
     yOffset = tab.add("Distance from left side", 13.46875*12).getEntry();
 
-    frontLeft = new CANSparkMax(Drive.FRNT_LFT, MotorType.kBrushless);
-    backLeft = new CANSparkMax(Drive.BCK_LFT, MotorType.kBrushless);
+    frontLeft = new CANSparkMax(Drive.FRNT_LFT, CANSparkMaxLowLevel.MotorType.kBrushless);
+    backLeft = new CANSparkMax(Drive.BCK_LFT, CANSparkMaxLowLevel.MotorType.kBrushless);
     leftMotors = new SpeedControllerGroup(frontLeft, backLeft);
 
     leftEncoder = frontLeft.getEncoder();
     leftEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
 
-    frontRight = new CANSparkMax(Drive.FRNT_RT, MotorType.kBrushless);
-    backRight = new CANSparkMax(Drive.BCK_RT, MotorType.kBrushless);
+    frontRight = new CANSparkMax(Drive.FRNT_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
+    backRight = new CANSparkMax(Drive.BCK_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
     rightMotors = new SpeedControllerGroup(frontRight, backRight);
 
     rightEncoder = frontRight.getEncoder();
@@ -107,7 +112,7 @@ public class DriveSystem extends SubsystemBase {
         49.8952,
         Units.inchesToMeters(3),
         Units.inchesToMeters(26),
-        null//VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005)  // Line with error
+        null//VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005)
       );
 
       frontLeftSim = new CANSparkMaxSim(Drive.FRNT_LFT);
@@ -142,6 +147,19 @@ public class DriveSystem extends SubsystemBase {
   public void drive(double ySpeed, double rotation) {
     drive.arcadeDrive(ySpeed, rotation, true);
   }
+
+  public void path(String pathName) {
+    String jsonFile = "paths/output/" + pathName + ".json";
+    Trajectory trajectory = new Trajectory();
+
+    try {
+      Path toTrajectory = Filesystem.getDeployDirectory().toPath().resolve(jsonFile);
+      trajectory = TrajectoryUtil.fromPathweaverJson(toTrajectory);
+    } catch (IOException e) {
+      DriverStation.reportError("Unable to open trajectory" + jsonFile, e.getStackTrace());
+    }
+  }
+  
 
   @Override
   public void periodic() {
