@@ -7,7 +7,12 @@
 
 package com.irontigers.robot;
 
+import edu.wpi.first.wpilibj.trajectory.Trajectory;
+import edu.wpi.first.wpilibj.trajectory.TrajectoryUtil;
+import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.wpilibj.util.Units;
+
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
@@ -96,5 +101,35 @@ public final class Constants {
 
     public static final class Falcon500 {
         public static final int ENCODER_PPR = 2048;
+    }
+
+    public static final class Characterization {
+        
+        public static final double kMaxSpeedMetersPerSecond = 3;
+        public static final double kMaxAccelerationMetersPerSecondSquared = 3;
+        public static final double kRamseteB = 2;
+        public static final double kRamseteZeta = 0.7;
+        public static final DifferentialDriveKinematics kDriveKinematics =
+        new DifferentialDriveKinematics(FeedForward.TRACK_WIDTH);
+        public static final double kPDriveVel = FeedBack.KP;
+
+        
+        public static final class FeedForward {
+            public static final double TRACK_WIDTH = 0.6575752289955583;
+            public static final double KS = 0.303;
+            public static final double KV = 0.132;
+            public static final double KA = 0.0265;
+        }
+
+        public static final class FeedBack {
+            public static final double KV = 0.132;
+            public static final double KS = 0.303;
+            public static final double KA = 0.0265;
+            public static final double KP = 0.000171;
+            public static final double KD = 0.0;
+        }
+
+
+        
     }
 }

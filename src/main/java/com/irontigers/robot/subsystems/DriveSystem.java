@@ -11,7 +11,9 @@ import com.irontigers.robot.Constants.Drive;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.function.Supplier;
 
+import com.irontigers.robot.Constants;
 import com.irontigers.robot.Robot;
 import com.irontigers.robot.sim.CANSparkMaxSim;
 import com.irontigers.robot.sim.DifferentialDriveCompat;
@@ -26,9 +28,11 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
+import edu.wpi.first.wpilibj.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
@@ -49,7 +53,7 @@ public class DriveSystem extends SubsystemBase {
   private SpeedControllerGroup leftMotors;
   private SpeedControllerGroup rightMotors;
 
-  private DifferentialDriveCompat drive;
+  private DifferentialDrive drive;
 
   private AHRS navX;
 
@@ -88,13 +92,15 @@ public class DriveSystem extends SubsystemBase {
     leftEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
 
     frontRight = new CANSparkMax(Drive.FRNT_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
+    // frontRight.setInverted(true);
     backRight = new CANSparkMax(Drive.BCK_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
     rightMotors = new SpeedControllerGroup(frontRight, backRight);
 
     rightEncoder = frontRight.getEncoder();
     rightEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
 
-    drive = new DifferentialDriveCompat(leftMotors, rightMotors);
+    // drive = new DifferentialDriveCompat(leftMotors, rightMotors);
+    drive = new DifferentialDrive(leftMotors, rightMotors);
 
     navX = new AHRS();
 
@@ -124,6 +130,24 @@ public class DriveSystem extends SubsystemBase {
     }
   }
 
+  public Supplier<Pose2d> getPose2d() {
+    return () -> odometer.getPoseMeters(); 
+  }
+
+  public Supplier<DifferentialDriveWheelSpeeds> getWheelSpeeds() {
+    return () -> new DifferentialDriveWheelSpeeds(leftEncoder.getVelocity(), rightEncoder.getVelocity());
+  }
+
+  public void resetOdometry(Pose2d pose) {
+    resetEncoders();
+    odometer.resetPosition(pose, navX.getRotation2d());
+  }
+
+  public void resetEncoders() {
+    leftEncoder.setPosition(0);
+    rightEncoder.setPosition(0);
+  }
+
   private double getLeftDistance() {
     return leftEncoder.getPosition();
   }
@@ -148,15 +172,24 @@ public class DriveSystem extends SubsystemBase {
     drive.arcadeDrive(ySpeed, rotation, true);
   }
 
-  public void path(String pathName) {
-    String jsonFile = "paths/output/" + pathName + ".json";
+  // @FunctionalInterface
+  public void tankDriveVolts(double leftVolts, double rightVolts) {
+    leftMotors.setVoltage(leftVolts);
+    rightMotors.setVoltage(-rightVolts);
+    drive.feed();
+  }
+
+  public static Trajectory path(String pathName) {
+    String jsonFile = "paths/output/" + pathName + ".wpilib.json";
     Trajectory trajectory = new Trajectory();
 
     try {
       Path toTrajectory = Filesystem.getDeployDirectory().toPath().resolve(jsonFile);
       trajectory = TrajectoryUtil.fromPathweaverJson(toTrajectory);
+      return trajectory;
     } catch (IOException e) {
       DriverStation.reportError("Unable to open trajectory" + jsonFile, e.getStackTrace());
+      return null;
     }
   }
   
@@ -181,20 +214,20 @@ public class DriveSystem extends SubsystemBase {
     return robotPosition;
   }
 
-  @Override
-  public void simulationPeriodic() {
+  // @Override
+  // public void simulationPeriodic() {
 
-    driveSim.setInputs(drive.getLeftMotorOutput() * RobotController.getInputVoltage(),
-        -drive.getRightMotorOutput() * RobotController.getInputVoltage());
+  //   driveSim.setInputs(drive.getLeftMotorOutput() * RobotController.getInputVoltage(),
+  //       -drive.getRightMotorOutput() * RobotController.getInputVoltage());
 
-    driveSim.update(0.02);                     
+  //   driveSim.update(0.02);                     
 
-    frontLeftSim.setPosition(driveSim.getLeftPositionMeters());
-    frontRightSim.setPosition(-driveSim.getRightPositionMeters());
+  //   frontLeftSim.setPosition(driveSim.getLeftPositionMeters());
+  //   frontRightSim.setPosition(-driveSim.getRightPositionMeters());
 
-    frontLeftSim.setVelocity(driveSim.getLeftVelocityMetersPerSecond());
-    frontRightSim.setVelocity(-driveSim.getRightVelocityMetersPerSecond());
+  //   frontLeftSim.setVelocity(driveSim.getLeftVelocityMetersPerSecond());
+  //   frontRightSim.setVelocity(-driveSim.getRightVelocityMetersPerSecond());
 
-    navXSim.setAngle(driveSim.getHeading().getDegrees());
-  }
+  //   navXSim.setAngle(driveSim.getHeading().getDegrees());
+  // }
 }

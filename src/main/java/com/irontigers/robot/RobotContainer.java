@@ -16,6 +16,8 @@ import static edu.wpi.first.wpilibj.XboxController.Button.kStart;
 import static edu.wpi.first.wpilibj.XboxController.Button.kX;
 import static edu.wpi.first.wpilibj.XboxController.Button.kY;
 
+import java.util.function.BiConsumer;
+
 import com.irontigers.robot.Constants.Controllers;
 import com.irontigers.robot.commands.AutonomousDrive;
 import com.irontigers.robot.commands.JoystickDriveCommand;
@@ -33,12 +35,24 @@ import com.irontigers.robot.triggers.BallPresenceTrigger;
 import com.irontigers.robot.triggers.DPadButton;
 import com.irontigers.robot.triggers.DPadButton.DPadDirection;
 
+// import org.graalvm.compiler.lir.amd64.vector.AMD64VectorShuffle.ConstShuffleBytesOp;
+
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.MedianFilter;
+import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.controller.RamseteController;
+import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
+import edu.wpi.first.wpilibj.geometry.Pose2d;
+import edu.wpi.first.wpilibj.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.trajectory.Trajectory;
+import edu.wpi.first.wpilibj.trajectory.TrajectoryConfig;
+import edu.wpi.first.wpilibj.trajectory.TrajectoryGenerator;
+import edu.wpi.first.wpilibj.trajectory.constraint.DifferentialDriveVoltageConstraint;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RamseteCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
@@ -63,6 +77,9 @@ public class RobotContainer {
 
   private JoystickButton incrementCountButton = new JoystickButton(controller, kStart.value);
   private JoystickButton decrementCountButton = new JoystickButton(controller, kBack.value);
+
+  JoystickButton opengateButton = new JoystickButton(testController, kBumperRight.value);
+  JoystickButton closegateButton = new JoystickButton(testController, kBumperLeft.value);
   //
   //
   //
@@ -131,6 +148,9 @@ public class RobotContainer {
     turretLeftButton.whenHeld(new RotateTurret(shooterSystem, RotateTurret.Direction.LEFT));
     turretRightButton.whenHeld(new RotateTurret(shooterSystem, RotateTurret.Direction.RIGHT));
 
+    opengateButton.whenPressed(new InstantCommand(magSystem::openGate, magSystem));
+    closegateButton.whenPressed(new InstantCommand(magSystem::closeGate, magSystem));
+
     // bottomBallSensor.whenInactive(magSystem::incrementBalls, magSystem);
   }
 
@@ -147,16 +167,72 @@ public class RobotContainer {
    *
    * @return the command to run in autonomous
    */
+  // public Command getAutonomousCommand() {
+  //   // An ExampleCommand will run in autonomous
+  //   return new SequentialCommandGroup(
+  //     new InstantCommand(visionSystem::setToVision),
+  //     new InstantCommand(magSystem::closeGate), new AutonomousDrive(driveSystem),
+  //       new InstantCommand(visionSystem::enableLeds), new WaitUntilCommand(visionSystem::seesTarget),
+  //       new VisionAim(shooterSystem, visionSystem), getShootAllCommand(), new InstantCommand(visionSystem::disableLeds),
+  //       new InstantCommand(visionSystem::setToDriving));
+  // }
+//////////////////////////////////////////
+
+ /**
+   * Use this to pass the autonomous command to the main {@link Robot} class.
+   *
+   * @return the command to run in autonomous
+   */
   public Command getAutonomousCommand() {
-    // An ExampleCommand will run in autonomous
-    return new SequentialCommandGroup(
-      new InstantCommand(visionSystem::setToVision),
-      new InstantCommand(magSystem::closeGate), new AutonomousDrive(driveSystem),
-        new InstantCommand(visionSystem::enableLeds), new WaitUntilCommand(visionSystem::seesTarget),
-        new VisionAim(shooterSystem, visionSystem), getShootAllCommand(), new InstantCommand(visionSystem::disableLeds),
-        new InstantCommand(visionSystem::setToDriving));
+
+    // Create a voltage constraint to ensure we don't accelerate too fast
+    var autoVoltageConstraint =
+        new DifferentialDriveVoltageConstraint(
+            new SimpleMotorFeedforward(Constants.Characterization.FeedForward.KS,
+              Constants.Characterization.FeedForward.KV,
+              Constants.Characterization.FeedForward.KA),
+            Constants.Characterization.kDriveKinematics,
+            10);
+
+    // Create config for trajectory
+    TrajectoryConfig config =
+        new TrajectoryConfig(Constants.Characterization.kMaxSpeedMetersPerSecond,
+                             Constants.Characterization.kMaxAccelerationMetersPerSecondSquared)
+            // Add kinematics to ensure max speed is actually obeyed
+            .setKinematics(Constants.Characterization.kDriveKinematics)
+            // Apply the voltage constraint
+            .addConstraint(autoVoltageConstraint);
+
+    // An example trajectory to follow.  All units in meters.
+    Trajectory exampleTrajectory = DriveSystem.path("Barrel Racing");
+
+
+    BiConsumer<Double, Double> outVolts = (l, r) -> driveSystem.tankDriveVolts(l, r);
+
+    RamseteCommand ramseteCommand = new RamseteCommand(
+        exampleTrajectory,
+        driveSystem.getPose2d(),
+        new RamseteController(Constants.Characterization.kRamseteB, Constants.Characterization.kRamseteZeta),
+        new SimpleMotorFeedforward(Constants.Characterization.FeedForward.KS,
+                                   Constants.Characterization.FeedForward.KV,
+                                   Constants.Characterization.FeedForward.KA),
+        Constants.Characterization.kDriveKinematics,
+        driveSystem.getWheelSpeeds(),
+        new PIDController(Constants.Characterization.kPDriveVel, 0, 0),
+        new PIDController(Constants.Characterization.kPDriveVel, 0, 0),
+        // RamseteCommand passes volts to the callback
+        outVolts,
+        driveSystem
+    );
+
+    // Reset odometry to the starting pose of the trajectory.
+    driveSystem.resetOdometry(exampleTrajectory.getInitialPose());
+
+    // Run path following command, then stop at the end.
+    return ramseteCommand.andThen(() -> driveSystem.tankDriveVolts(0, 0));
   }
 
+/////////////////////////////////////////
   public void initTesting() {
     // visionSystem.disableLeds();
     visionSystem.enableLeds();
@@ -167,8 +243,9 @@ public class RobotContainer {
     JoystickButton stopShooterButton = new JoystickButton(testController, kB.value);
     JoystickButton increaseFlywheelButton = new JoystickButton(testController, kStart.value);
     JoystickButton decreaseFlywheelButton = new JoystickButton(testController, kBack.value);
-    JoystickButton opengateButton = new JoystickButton(testController, kBumperRight.value);
-    JoystickButton closegateButton = new JoystickButton(testController, kBumperLeft.value);
+    
+
+    // turretLeftButton.whenPressed(shooterSystem.setTurretPower(0.5));
 
     enableShooterButton.whenPressed(() -> shooterSystem.setFlywheelPower(0.2), shooterSystem);
     disableMagButton.whenPressed(magSystem::disableMagazine, magSystem);
@@ -183,10 +260,10 @@ public class RobotContainer {
     decreaseFlywheelButton.whenPressed(() -> shooterSystem.setFlywheelPower(shooterSystem.getFlywheelPower() - 0.025),
         shooterSystem);
 
-    opengateButton.whenPressed(new InstantCommand(magSystem::openGate, magSystem));
-    closegateButton.whenPressed(new InstantCommand(magSystem::closeGate, magSystem));
+    
   }
 
+  // Shoots all the balls
   private Command getShootAllCommand() {
     SequentialCommandGroup shootAllCommand = new SequentialCommandGroup(new VisionAim(shooterSystem, visionSystem));
     for (int i = 0; i < magSystem.getStoredBalls(); i++) {
