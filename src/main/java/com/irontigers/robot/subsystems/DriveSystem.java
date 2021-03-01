@@ -53,7 +53,7 @@ public class DriveSystem extends SubsystemBase {
   private SpeedControllerGroup leftMotors;
   private SpeedControllerGroup rightMotors;
 
-  private DifferentialDrive drive;
+  private DifferentialDriveCompat drive;
 
   private AHRS navX;
 
@@ -72,6 +72,9 @@ public class DriveSystem extends SubsystemBase {
   private CANSparkMaxSim frontLeftSim;
   private CANSparkMaxSim frontRightSim;
   private NavXSim navXSim;
+
+  private double leftMotorVolts;
+  private double rightMotorVolts;
 
   private final String positionKey = "Position";
   private final String velocityKey = "Velocity";
@@ -100,7 +103,7 @@ public class DriveSystem extends SubsystemBase {
     rightEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
 
     // drive = new DifferentialDriveCompat(leftMotors, rightMotors);
-    drive = new DifferentialDrive(leftMotors, rightMotors);
+    drive = new DifferentialDriveCompat(leftMotors, rightMotors);
 
     navX = new AHRS();
 
@@ -111,6 +114,9 @@ public class DriveSystem extends SubsystemBase {
 
 
     if (!Robot.isReal()) {
+      leftMotorVolts = 0;
+      rightMotorVolts = 0;
+
       driveSim = new DifferentialDrivetrainSim(
         DCMotor.getNEO(2),
         8.45, 
@@ -177,6 +183,10 @@ public class DriveSystem extends SubsystemBase {
     leftMotors.setVoltage(leftVolts);
     rightMotors.setVoltage(-rightVolts);
     drive.feed();
+
+    leftMotorVolts = leftVolts;
+    rightMotorVolts = rightVolts;
+
   }
 
   public static Trajectory path(String pathName) {
@@ -214,20 +224,19 @@ public class DriveSystem extends SubsystemBase {
     return robotPosition;
   }
 
-  // @Override
-  // public void simulationPeriodic() {
+  @Override
+  public void simulationPeriodic() {
 
-  //   driveSim.setInputs(drive.getLeftMotorOutput() * RobotController.getInputVoltage(),
-  //       -drive.getRightMotorOutput() * RobotController.getInputVoltage());
+    driveSim.setInputs(leftMotorVolts, rightMotorVolts);
 
-  //   driveSim.update(0.02);                     
+    driveSim.update(0.02);                     
 
-  //   frontLeftSim.setPosition(driveSim.getLeftPositionMeters());
-  //   frontRightSim.setPosition(-driveSim.getRightPositionMeters());
+    frontLeftSim.setPosition(driveSim.getLeftPositionMeters());
+    frontRightSim.setPosition(-driveSim.getRightPositionMeters());
 
-  //   frontLeftSim.setVelocity(driveSim.getLeftVelocityMetersPerSecond());
-  //   frontRightSim.setVelocity(-driveSim.getRightVelocityMetersPerSecond());
+    frontLeftSim.setVelocity(driveSim.getLeftVelocityMetersPerSecond());
+    frontRightSim.setVelocity(-driveSim.getRightVelocityMetersPerSecond());
 
-  //   navXSim.setAngle(driveSim.getHeading().getDegrees());
-  // }
+    navXSim.setAngle(driveSim.getHeading().getDegrees());
+  }
 }
