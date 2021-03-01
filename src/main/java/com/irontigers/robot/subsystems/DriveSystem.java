@@ -93,6 +93,7 @@ public class DriveSystem extends SubsystemBase {
 
     leftEncoder = frontLeft.getEncoder();
     leftEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
+    leftEncoder.setVelocityConversionFactor(Drive.ENC_CNV_FCTR_V);
 
     frontRight = new CANSparkMax(Drive.FRNT_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
     // frontRight.setInverted(true);
@@ -101,13 +102,14 @@ public class DriveSystem extends SubsystemBase {
 
     rightEncoder = frontRight.getEncoder();
     rightEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
+    rightEncoder.setVelocityConversionFactor(Drive.ENC_CNV_FCTR_V);
 
     // drive = new DifferentialDriveCompat(leftMotors, rightMotors);
     drive = new DifferentialDriveCompat(leftMotors, rightMotors);
 
     navX = new AHRS();
 
-    odometer = new DifferentialDriveOdometry(Rotation2d.fromDegrees(-navX.getAngle()),
+    odometer = new DifferentialDriveOdometry(navX.getRotation2d(),
         new Pose2d(Units.feetToMeters(42.4375), Units.feetToMeters(13.46875), Rotation2d.fromDegrees(0)));
     
     gameField = new Field2d();
@@ -120,8 +122,11 @@ public class DriveSystem extends SubsystemBase {
       driveSim = new DifferentialDrivetrainSim(
         DCMotor.getNEO(2),
         8.45, 
-        3, 
-        49.8952,
+          (12.5 / 2.2 * Math.pow(Units.inchesToMeters(10),
+              2)) + (2.8 /* CIM motor */ * 2 / 2.2 + 2.0 /* Toughbox Mini- ish */) * Math.pow(
+                  Units.inchesToMeters(26.0 / 2.0),
+                  2), 
+        Constants.Characterization.FeedForward.TRACK_WIDTH,
         Units.inchesToMeters(3),
         Units.inchesToMeters(26),
         null//VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005)
@@ -191,11 +196,10 @@ public class DriveSystem extends SubsystemBase {
 
   public static Trajectory path(String pathName) {
     String jsonFile = "paths/output/" + pathName + ".wpilib.json";
-    Trajectory trajectory = new Trajectory();
 
     try {
       Path toTrajectory = Filesystem.getDeployDirectory().toPath().resolve(jsonFile);
-      trajectory = TrajectoryUtil.fromPathweaverJson(toTrajectory);
+      Trajectory trajectory = TrajectoryUtil.fromPathweaverJson(toTrajectory);
       return trajectory;
     } catch (IOException e) {
       DriverStation.reportError("Unable to open trajectory" + jsonFile, e.getStackTrace());

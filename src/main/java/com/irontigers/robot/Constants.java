@@ -32,6 +32,7 @@ public final class Constants {
         public static final int BCK_RT = 3;
 
         public static final double ENC_CNV_FCTR = 1 / 8.45 * (Units.inchesToMeters(6) * Math.PI);
+        public static final double ENC_CNV_FCTR_V = ENC_CNV_FCTR / 60;
     }
 
     public static final class Shooter {
