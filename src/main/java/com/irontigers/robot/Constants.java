@@ -115,17 +115,17 @@ public final class Constants {
 
         
         public static final class FeedForward {
-            public static final double TRACK_WIDTH = 0.6575752289955583;
-            public static final double KS = 0.303;
-            public static final double KV = 0.132;
-            public static final double KA = 0.0265;
+            public static final double TRACK_WIDTH = 2.6605493765160295;
+            public static final double KS = 0.302;
+            public static final double KV = 0.0326;
+            public static final double KA = 0.00655;
         }
 
         public static final class FeedBack {
-            public static final double KV = 0.132;
-            public static final double KS = 0.303;
-            public static final double KA = 0.0265;
-            public static final double KP = 0.000171;
+            public static final double KV = FeedForward.KV;
+            public static final double KS = FeedForward.KS;
+            public static final double KA = FeedForward.KA;
+            public static final double KP = 0.311;
             public static final double KD = 0.0;
         }
 
