@@ -35,8 +35,8 @@ public final class Constants {
     }
 
     public static final class Shooter {
-        public static final int FLYWHEEL_ADDR = 1;
-        public static final int TURRET_ADDR = 2;
+        public static final int FLYWHEEL_ADDR = 8;
+        public static final int TURRET_ADDR = 9;
 
         public static final double DEFUALT_SHOOTER_SPD = 1;
         public static final double DEFAULT_TURRET_SPD = 0.05;
@@ -115,17 +115,17 @@ public final class Constants {
 
         
         public static final class FeedForward {
-            public static final double TRACK_WIDTH = 0.6575752289955583;
-            public static final double KS = 0.303;
-            public static final double KV = 0.132;
-            public static final double KA = 0.0265;
+            public static final double TRACK_WIDTH = 0.037318314670238384;
+            public static final double KS = 0.403;
+            public static final double KV = 0.252;
+            public static final double KA = 0.0295;
         }
 
         public static final class FeedBack {
-            public static final double KV = 0.132;
-            public static final double KS = 0.303;
-            public static final double KA = 0.0265;
-            public static final double KP = 0.000171;
+            public static final double KV = FeedForward.KV;
+            public static final double KS = FeedForward.KS;
+            public static final double KA = FeedForward.KA;
+            public static final double KP = 12.3;
             public static final double KD = 0.0;
         }
 

@@ -127,6 +127,7 @@ public class ShooterSystem extends SubsystemBase {
     SmartDashboard.putNumber("Turret Angle", getTurretAngle());
 
     SmartDashboard.putNumber("Speed for distance", targetSpeed);
+    SmartDashboard.putNumber("Flywheel power", getFlywheelPower());
   }
 
   public double getSpeedForDist(double distance) {

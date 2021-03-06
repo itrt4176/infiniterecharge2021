@@ -16,6 +16,7 @@ import static edu.wpi.first.wpilibj.XboxController.Button.kStart;
 import static edu.wpi.first.wpilibj.XboxController.Button.kX;
 import static edu.wpi.first.wpilibj.XboxController.Button.kY;
 
+import java.time.Instant;
 import java.util.function.BiConsumer;
 
 import com.irontigers.robot.Constants.Controllers;
@@ -35,6 +36,9 @@ import com.irontigers.robot.triggers.BallPresenceTrigger;
 import com.irontigers.robot.triggers.DPadButton;
 import com.irontigers.robot.triggers.DPadButton.DPadDirection;
 
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
+
 // import org.graalvm.compiler.lir.amd64.vector.AMD64VectorShuffle.ConstShuffleBytesOp;
 
 import edu.wpi.first.wpilibj.GenericHID;
@@ -45,6 +49,7 @@ import edu.wpi.first.wpilibj.controller.RamseteController;
 import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.trajectory.Trajectory;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryConfig;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryGenerator;
@@ -73,6 +78,7 @@ public class RobotContainer {
   private JoystickButton shootAllButton = new JoystickButton(controller, kA.value);
   private JoystickButton shootOneButton = new JoystickButton(controller, kB.value);
   private JoystickButton cancelShootingButton = new JoystickButton(controller, kY.value);
+  private JoystickButton startIntake = new JoystickButton(controller, kX.value);
   private JoystickButton autoAimButton = new JoystickButton(controller, kBumperRight.value);
 
   private JoystickButton incrementCountButton = new JoystickButton(controller, kStart.value);
@@ -127,6 +133,7 @@ public class RobotContainer {
     configureButtonBindings();
 
     driveSystem.setDefaultCommand(joyDrive);
+    // magSystem.setDefaultCommand(MagazineOn());
 
     intakeSwitchCommand.initialize();
     magSystem.setDefaultCommand(intakeSwitchCommand);
@@ -138,6 +145,7 @@ public class RobotContainer {
    * ({@link edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then
    * passing it to a {@link edu.wpi.first.wpilibj2.command.button.JoystickButton}.
    */
+  
   private void configureButtonBindings() {
     shootOneButton.whenPressed(shootOnceCommand);
     shootAllButton.whenPressed(getShootAllCommand());
@@ -150,6 +158,11 @@ public class RobotContainer {
 
     opengateButton.whenPressed(new InstantCommand(magSystem::openGate, magSystem));
     closegateButton.whenPressed(new InstantCommand(magSystem::closeGate, magSystem));
+
+    // startIntake.whenPressed(voluntaryIntakeCommand());
+    cancelShootingButton.whenPressed(new InstantCommand(shooterSystem::stopFlywhel, shooterSystem));
+
+    // visionSystem.disableLeds();
 
     // bottomBallSensor.whenInactive(magSystem::incrementBalls, magSystem);
   }
@@ -176,7 +189,9 @@ public class RobotContainer {
   //       new VisionAim(shooterSystem, visionSystem), getShootAllCommand(), new InstantCommand(visionSystem::disableLeds),
   //       new InstantCommand(visionSystem::setToDriving));
   // }
+
 //////////////////////////////////////////
+
 
  /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
@@ -192,7 +207,7 @@ public class RobotContainer {
               Constants.Characterization.FeedForward.KV,
               Constants.Characterization.FeedForward.KA),
             Constants.Characterization.kDriveKinematics,
-            10);
+            7);
 
     // Create config for trajectory
     TrajectoryConfig config =
@@ -204,13 +219,23 @@ public class RobotContainer {
             .addConstraint(autoVoltageConstraint);
 
     // An example trajectory to follow.  All units in meters.
-    Trajectory exampleTrajectory = DriveSystem.path("Barrel Racing");
+    Trajectory exampleTrajectory = DriveSystem.path("Slalom");
+    Trajectory mini = TrajectoryGenerator.generateTrajectory(new Pose2d(0, 0, new Rotation2d(0)),
+                      java.util.List.of(
+                        new Translation2d(1, 1),
+                        new Translation2d(5, -1)
+                      ),
+                      new Pose2d(6, 0, new Rotation2d(0)),
+
+
+                      config);
 
 
     BiConsumer<Double, Double> outVolts = (l, r) -> driveSystem.tankDriveVolts(l, r);
 
     RamseteCommand ramseteCommand = new RamseteCommand(
         exampleTrajectory,
+        // mini,
         driveSystem.getPose2d(),
         new RamseteController(Constants.Characterization.kRamseteB, Constants.Characterization.kRamseteZeta),
         new SimpleMotorFeedforward(Constants.Characterization.FeedForward.KS,
@@ -263,6 +288,11 @@ public class RobotContainer {
     
   }
 
+  private Command MagazineOn() {
+    InstantCommand magON = new InstantCommand(magSystem::enableMagazine);
+    return magON;
+  }
+
   // Shoots all the balls
   private Command getShootAllCommand() {
     SequentialCommandGroup shootAllCommand = new SequentialCommandGroup(new VisionAim(shooterSystem, visionSystem));
@@ -273,6 +303,10 @@ public class RobotContainer {
     return shootAllCommand.andThen(new InstantCommand(magSystem::closeGate, magSystem), new WaitCommand(0.5),
         new StopShooter(shooterSystem), new InstantCommand(visionSystem::setToDriving));
 
+  }
+  private Command voluntaryIntakeCommand() {
+    SequentialCommandGroup intakeCommand = new SequentialCommandGroup(new InstantCommand(magSystem::enableIntake, magSystem), new WaitCommand(5), new InstantCommand(magSystem::disableIntake, magSystem));
+    return intakeCommand;
   }
 
   public VisionSystem getVisionSystem() {

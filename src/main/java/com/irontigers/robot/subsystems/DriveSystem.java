@@ -24,6 +24,7 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel;
 
 import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotController;
@@ -208,11 +209,19 @@ public class DriveSystem extends SubsystemBase {
     SmartDashboard.putNumber("Robot Y Delta Pos", robotPosition.getTranslation().getY());
 
     SmartDashboard.putData(gameField);
+    NetworkTableEntry m_xEntry = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("X");
+    NetworkTableEntry m_yEntry = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("Y");
+
+    var translation = odometer.getPoseMeters().getTranslation();
+    m_xEntry.setNumber(translation.getX());
+    m_yEntry.setNumber(translation.getY());
   }
 
   public Pose2d getRobotPosition() {
     return robotPosition;
   }
+
+
 
   // @Override
   // public void simulationPeriodic() {
