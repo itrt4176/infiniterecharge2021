@@ -207,7 +207,7 @@ public class RobotContainer {
               Constants.Characterization.FeedForward.KV,
               Constants.Characterization.FeedForward.KA),
             Constants.Characterization.kDriveKinematics,
-            7);
+            6);
 
     // Create config for trajectory
     TrajectoryConfig config =
@@ -219,16 +219,16 @@ public class RobotContainer {
             .addConstraint(autoVoltageConstraint);
 
     // An example trajectory to follow.  All units in meters.
-    Trajectory exampleTrajectory = DriveSystem.path("Slalom");
-    Trajectory mini = TrajectoryGenerator.generateTrajectory(new Pose2d(0, 0, new Rotation2d(0)),
-                      java.util.List.of(
-                        new Translation2d(1, 1),
-                        new Translation2d(5, -1)
-                      ),
-                      new Pose2d(6, 0, new Rotation2d(0)),
+    Trajectory exampleTrajectory = DriveSystem.path("Debug");
+    // Trajectory mini = TrajectoryGenerator.generateTrajectory(new Pose2d(0, 0, new Rotation2d(0)),
+    //                   java.util.List.of(
+    //                     new Translation2d(1, 1),
+    //                     new Translation2d(5, -1)
+    //                   ),
+    //                   new Pose2d(6, 0, new Rotation2d(0)),
 
 
-                      config);
+    //                   config);
 
 
     BiConsumer<Double, Double> outVolts = (l, r) -> driveSystem.tankDriveVolts(l, r);

@@ -91,6 +91,7 @@ public class DriveSystem extends SubsystemBase {
 
     leftEncoder = frontLeft.getEncoder();
     leftEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
+    leftEncoder.setVelocityConversionFactor(Drive.ENC_CNV_FCTR / 60);
 
     frontRight = new CANSparkMax(Drive.FRNT_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
     // frontRight.setInverted(true);
@@ -99,6 +100,7 @@ public class DriveSystem extends SubsystemBase {
 
     rightEncoder = frontRight.getEncoder();
     rightEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
+    rightEncoder.setVelocityConversionFactor(Drive.ENC_CNV_FCTR / 60);
 
     // drive = new DifferentialDriveCompat(leftMotors, rightMotors);
     drive = new DifferentialDrive(leftMotors, rightMotors);
@@ -136,7 +138,7 @@ public class DriveSystem extends SubsystemBase {
   }
 
   public Supplier<DifferentialDriveWheelSpeeds> getWheelSpeeds() {
-    return () -> new DifferentialDriveWheelSpeeds(leftEncoder.getVelocity(), rightEncoder.getVelocity());
+    return () -> new DifferentialDriveWheelSpeeds(leftEncoder.getVelocity(), -rightEncoder.getVelocity());
   }
 
   public void resetOdometry(Pose2d pose) {
