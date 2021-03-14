@@ -35,8 +35,8 @@ public final class Constants {
     }
 
     public static final class Shooter {
-        public static final int FLYWHEEL_ADDR = 1;
-        public static final int TURRET_ADDR = 2;
+        public static final int FLYWHEEL_ADDR = 8;
+        public static final int TURRET_ADDR = 9;
 
         public static final double DEFUALT_SHOOTER_SPD = 1;
         public static final double DEFAULT_TURRET_SPD = 0.05;
@@ -82,7 +82,7 @@ public final class Constants {
         public static final int GATE_PORT = 0;
 
         public static final double MAG_SPD = .2;
-        public static final double INTAKE_SPD = .3;
+        public static final double INTAKE_SPD = .6;
     }
 
     public static final class VISION {
@@ -115,7 +115,7 @@ public final class Constants {
 
         
         public static final class FeedForward {
-            public static final double TRACK_WIDTH = 2.6605493765160295;
+            public static final double TRACK_WIDTH = 0.6575752289955583;
             public static final double KS = 0.302;
             public static final double KV = 0.0326;
             public static final double KA = 0.00655;

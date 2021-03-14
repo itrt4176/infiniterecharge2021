@@ -16,6 +16,7 @@ import static edu.wpi.first.wpilibj.XboxController.Button.kStart;
 import static edu.wpi.first.wpilibj.XboxController.Button.kX;
 import static edu.wpi.first.wpilibj.XboxController.Button.kY;
 
+import java.util.List;
 import java.util.function.BiConsumer;
 
 import com.irontigers.robot.Constants.Controllers;
@@ -23,6 +24,7 @@ import com.irontigers.robot.commands.AutonomousDrive;
 import com.irontigers.robot.commands.JoystickDriveCommand;
 import com.irontigers.robot.commands.RotateTurret;
 import com.irontigers.robot.commands.RunShooter;
+import com.irontigers.robot.commands.RunShooterAtSpeed;
 import com.irontigers.robot.commands.Shoot;
 import com.irontigers.robot.commands.StopShooter;
 import com.irontigers.robot.commands.VisionAim;
@@ -45,10 +47,13 @@ import edu.wpi.first.wpilibj.controller.RamseteController;
 import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.geometry.Transform2d;
+import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.trajectory.Trajectory;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryConfig;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryGenerator;
 import edu.wpi.first.wpilibj.trajectory.constraint.DifferentialDriveVoltageConstraint;
+import edu.wpi.first.wpilibj.util.Units;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -74,6 +79,7 @@ public class RobotContainer {
   private JoystickButton shootOneButton = new JoystickButton(controller, kB.value);
   private JoystickButton cancelShootingButton = new JoystickButton(controller, kY.value);
   private JoystickButton autoAimButton = new JoystickButton(controller, kBumperRight.value);
+  public boolean isSmallNum;
 
   private JoystickButton incrementCountButton = new JoystickButton(controller, kStart.value);
   private JoystickButton decrementCountButton = new JoystickButton(controller, kBack.value);
@@ -92,7 +98,10 @@ public class RobotContainer {
   private DPadButton turretLeftButton = new DPadButton(controller, DPadDirection.LEFT);
   private DPadButton turretRightButton = new DPadButton(controller, DPadDirection.RIGHT);
 
-  private JoystickButton startAutonomousButton = new JoystickButton(controller, kBack.value);
+  private DPadButton powPortForwardButton = new DPadButton(controller, DPadDirection.UP);
+  private DPadButton powPortBackwardButton = new DPadButton(controller, DPadDirection.DOWN);
+
+  // private JoystickButton startAutonomousButton = new JoystickButton(controller, kBack.value);
 
   private DriveSystem driveSystem = new DriveSystem();
   private ShooterSystem shooterSystem = new ShooterSystem();
@@ -102,8 +111,13 @@ public class RobotContainer {
   private JoystickDriveCommand joyDrive = new JoystickDriveCommand(driveSystem, controller);
   private AutonomousDrive autonomousDrive = new AutonomousDrive(driveSystem);
   private BallPresenceTrigger topBallSensor = new BallPresenceTrigger(magSystem.getTopBallSensor());
+
   private BallPresenceTrigger bottomBallSensor = new BallPresenceTrigger(magSystem.getBottomBallSensor());
   private MedianFilter bottomSensorFilter = new MedianFilter(5);
+
+  // private JoystickButton increaseFlywheelButton = new JoystickButton(controller, kStart.value);
+  // private JoystickButton decreaseFlywheelButton = new JoystickButton(controller, kBack.value);
+    
 
   private ConditionalCommand intakeSwitchCommand = new ConditionalCommand(new SequentialCommandGroup( // onTrue
       new InstantCommand(magSystem::disableIntake, magSystem),
@@ -114,11 +128,13 @@ public class RobotContainer {
       magSystem::isMagFull);
 
   private SequentialCommandGroup shootOnceCommand = new SequentialCommandGroup(
-      new InstantCommand(visionSystem::setToVision), new VisionAim(shooterSystem, visionSystem),
+      // new InstantCommand(visionSystem::setToVision), new VisionAim(shooterSystem, visionSystem),
       new Shoot(magSystem, shooterSystem, visionSystem, topBallSensor),
       new InstantCommand(magSystem::closeGate, magSystem), new WaitCommand(0.5), new StopShooter(shooterSystem),
       new InstantCommand(visionSystem::setToDriving));
 
+
+  // private Command singleshot = new InstantCommand(shooterSystem::)
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
@@ -130,6 +146,7 @@ public class RobotContainer {
 
     intakeSwitchCommand.initialize();
     magSystem.setDefaultCommand(intakeSwitchCommand);
+
   }
 
   /**
@@ -140,7 +157,12 @@ public class RobotContainer {
    */
   private void configureButtonBindings() {
     shootOneButton.whenPressed(shootOnceCommand);
-    shootAllButton.whenPressed(getShootAllCommand());
+    shootAllButton.whenPressed(new SequentialCommandGroup(
+          new InstantCommand(visionSystem::setToVision),
+          new InstantCommand(magSystem::closeGate),
+            new InstantCommand(visionSystem::enableLeds), new WaitUntilCommand(visionSystem::seesTarget),
+            new VisionAim(shooterSystem, visionSystem), getShootAllCommand(), new InstantCommand(visionSystem::disableLeds),
+            new InstantCommand(visionSystem::setToDriving)));
 
     incrementCountButton.whenPressed(new InstantCommand(magSystem::incrementBalls));
     decrementCountButton.whenPressed(new InstantCommand(magSystem::decrementBalls));
@@ -151,7 +173,27 @@ public class RobotContainer {
     opengateButton.whenPressed(new InstantCommand(magSystem::openGate, magSystem));
     closegateButton.whenPressed(new InstantCommand(magSystem::closeGate, magSystem));
 
-    // bottomBallSensor.whenInactive(magSystem::incrementBalls, magSystem);
+    // increaseFlywheelButton.whenPressed(() -> shooterSystem.setTargetRPS(60),
+    //     shooterSystem);
+    // decreaseFlywheelButton.whenPressed(() -> shooterSystem.setTargetRPS(8),
+    //     shooterSystem);
+
+    bottomBallSensor.whenInactive(magSystem::incrementBalls);
+    topBallSensor.whenInactive(magSystem::decrementBalls);
+
+    powPortForwardButton.whenPressed(
+      new AutonomousDrive(driveSystem, 
+      new Transform2d(new Translation2d(Units.feetToMeters(13), 0), Rotation2d.fromDegrees(0)), 
+      0.65, 
+      -0.1)
+    );
+
+    powPortBackwardButton.whenPressed(
+      new AutonomousDrive(driveSystem, 
+      new Transform2d(new Translation2d(Units.feetToMeters(-13), 0), Rotation2d.fromDegrees(0)), 
+      -0.65, 
+      -0.1)
+    );
   }
 
   public boolean isTurretLeftButtonPressed() {
@@ -204,13 +246,20 @@ public class RobotContainer {
             .addConstraint(autoVoltageConstraint);
 
     // An example trajectory to follow.  All units in meters.
-    Trajectory exampleTrajectory = DriveSystem.path("Barrel Racing");
+    Trajectory exampleTrajectory = DriveSystem.path("Debug");
+
+    Trajectory mini = TrajectoryGenerator.generateTrajectory(new Pose2d(0, 0, new Rotation2d(0)), 
+                                                            List.of(
+                                                              new Translation2d(1, 0), new Translation2d(2, 0)), 
+                                                              new Pose2d(2, 0, new Rotation2d(0)), 
+                                                            config);
 
 
     BiConsumer<Double, Double> outVolts = (l, r) -> driveSystem.tankDriveVolts(l, r);
 
     RamseteCommand ramseteCommand = new RamseteCommand(
-        exampleTrajectory,
+        // exampleTrajectory,
+        mini,
         driveSystem.getPose2d(),
         new RamseteController(Constants.Characterization.kRamseteB, Constants.Characterization.kRamseteZeta),
         new SimpleMotorFeedforward(Constants.Characterization.FeedForward.KS,
@@ -241,8 +290,6 @@ public class RobotContainer {
     JoystickButton disableMagButton = new JoystickButton(testController, kY.value);
     JoystickButton shootButton = new JoystickButton(testController, kA.value);
     JoystickButton stopShooterButton = new JoystickButton(testController, kB.value);
-    JoystickButton increaseFlywheelButton = new JoystickButton(testController, kStart.value);
-    JoystickButton decreaseFlywheelButton = new JoystickButton(testController, kBack.value);
     
 
     // turretLeftButton.whenPressed(shooterSystem.setTurretPower(0.5));
@@ -255,15 +302,12 @@ public class RobotContainer {
 
     shooterSystem.setFlywheelPower(.2);
 
-    increaseFlywheelButton.whenPressed(() -> shooterSystem.setFlywheelPower(shooterSystem.getFlywheelPower() + 0.025),
-        shooterSystem);
-    decreaseFlywheelButton.whenPressed(() -> shooterSystem.setFlywheelPower(shooterSystem.getFlywheelPower() - 0.025),
-        shooterSystem);
+    
 
     
   }
 
-  // Shoots all the balls
+  /** Shoots all the balls */ 
   private Command getShootAllCommand() {
     SequentialCommandGroup shootAllCommand = new SequentialCommandGroup(new VisionAim(shooterSystem, visionSystem));
     for (int i = 0; i < magSystem.getStoredBalls(); i++) {

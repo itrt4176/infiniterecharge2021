@@ -7,6 +7,7 @@
 
 package com.irontigers.robot.commands;
 
+import com.fasterxml.jackson.databind.deser.SettableAnyProperty;
 import com.irontigers.robot.subsystems.MagazineSystem;
 import com.irontigers.robot.subsystems.ShooterSystem;
 import com.irontigers.robot.subsystems.VisionSystem;
@@ -19,6 +20,7 @@ import edu.wpi.first.wpilibj2.command.ParallelRaceGroup;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
+import com.irontigers.robot.RobotContainer;
 
 // NOTE:  Consider using this command inline, rather than writing a subclass.  For more
 // information, see:
@@ -28,17 +30,19 @@ public class Shoot extends SequentialCommandGroup {
   /**
    * Creates a new Shoot.
    */
+  
+
   public Shoot(MagazineSystem magSystem, ShooterSystem shooterSystem, VisionSystem visionSys, BallPresenceTrigger topBallSensor) {
     // Add your commands in the super() call, e.g.
     // super(new FooCommand(), new BarCommand());
     super(
-      new InstantCommand(visionSys::setToVision),
+      // new InstantCommand(visionSys::setToVision),
       new WaitCommand(0.2),
       new InstantCommand(magSystem::disableIntake, magSystem),
       new InstantCommand(magSystem::closeGate),
       new ParallelRaceGroup(
         new SequentialCommandGroup(
-          new InstantCommand(() -> shooterSystem.setTargetRPS(shooterSystem.getSpeedForDist(visionSys.getDistanceToTarget()))),
+          new InstantCommand(() -> shooterSystem.setTargetRPS(/*60)*/shooterSystem.getSpeedForDist(visionSys.getDistanceToTarget()))),
           new RunShooterAtSpeed(shooterSystem, shooterSystem.getTargetRPS())
         ),
         new SequentialCommandGroup(
@@ -48,11 +52,14 @@ public class Shoot extends SequentialCommandGroup {
           new WaitUntilCommand(() -> {
             return !shooterSystem.isReadyToShoot();
           }),
-          new InstantCommand(magSystem::decrementBalls, magSystem)
+          // new InstantCommand(magSystem::decrementBalls, magSystem),
+          new InstantCommand(magSystem::closeGate, magSystem)
         )
       )
     );
   }
+
+  
 
   /**
    * Creates a new Shoot.

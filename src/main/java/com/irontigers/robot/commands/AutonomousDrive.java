@@ -24,16 +24,31 @@ public class AutonomousDrive extends CommandBase {
   private DriveSystem driveSys;
   private Pose2d currentPos;
   private Pose2d endPos;
+  private Transform2d transform;
+  private double ySpeed;
+  private double rotation;
 
   private double distanceError;
+  private int errDirection;
   
   /**
    * Creates a new AutonomousDrive.
    */
   public AutonomousDrive(DriveSystem driveSys) {
     this.driveSys = driveSys;
+    transform = new Transform2d(new Translation2d(Units.feetToMeters(-4), 0), Rotation2d.fromDegrees(0));
+    ySpeed = -0.3;
+    rotation = 0;
     addRequirements(driveSys);
     // Use addRequirements() here to declare subsystem dependencies.
+  }
+
+  public AutonomousDrive(DriveSystem driveSys, Transform2d transformation, double ySpeed, double rotation) {
+    this.driveSys = driveSys;
+    transform = transformation;
+    this.ySpeed = ySpeed;
+    this.rotation = rotation;
+
   }
 
   // Called when the command is initially scheduled.
@@ -41,8 +56,14 @@ public class AutonomousDrive extends CommandBase {
   public void initialize() {
     driveSys.initStartingPose();
     currentPos = driveSys.getRobotPosition();
-    endPos = currentPos.plus(new Transform2d(new Translation2d(Units.feetToMeters(-4), 0), Rotation2d.fromDegrees(0)));
+    endPos = currentPos.plus(transform);
     distanceError = currentPos.relativeTo(endPos).getTranslation().getX();
+
+    if (distanceError > 0) {
+      errDirection = 1;
+    } else {
+      errDirection = -1;
+    }
 
   }
 
@@ -50,8 +71,8 @@ public class AutonomousDrive extends CommandBase {
   @Override
   public void execute() {
     currentPos = driveSys.getRobotPosition();
-    distanceError = currentPos.relativeTo(endPos).getTranslation().getX();
-    driveSys.drive(-0.3, 0);
+    distanceError = currentPos.relativeTo(endPos).getTranslation().getX() * errDirection;
+    driveSys.drive(ySpeed, rotation);
     SmartDashboard.putNumber("Auto dist error", distanceError);
   }
 
