@@ -110,9 +110,9 @@ public class RobotContainer {
 
   private JoystickDriveCommand joyDrive = new JoystickDriveCommand(driveSystem, controller);
   private AutonomousDrive autonomousDrive = new AutonomousDrive(driveSystem);
-  private BallPresenceTrigger topBallSensor = new BallPresenceTrigger(magSystem.getTopBallSensor());
+  private BallPresenceTrigger topBallSensor = new BallPresenceTrigger(Constants.Magazine.TOP_SENSOR_PORT, 25);
 
-  private BallPresenceTrigger bottomBallSensor = new BallPresenceTrigger(magSystem.getBottomBallSensor());
+  private BallPresenceTrigger bottomBallSensor = new BallPresenceTrigger(Constants.Magazine.BOT_SENSOR_PORT, 25);
   private MedianFilter bottomSensorFilter = new MedianFilter(5);
 
   // private JoystickButton increaseFlywheelButton = new JoystickButton(controller, kStart.value);

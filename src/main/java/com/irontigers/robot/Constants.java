@@ -77,7 +77,7 @@ public final class Constants {
         public static final int INTAKE_ADDR = 7;
 
         public static final int BOT_SENSOR_PORT = 0;
-        public static final int TOP_SENSOR_PORT = 1;
+        public static final int TOP_SENSOR_PORT = 3;
 
         public static final int GATE_PORT = 0;
 
