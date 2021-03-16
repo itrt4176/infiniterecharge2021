@@ -29,8 +29,8 @@ public class MagazineSystem extends SubsystemBase {
 
   private int storedBalls;
 
-  private final AnalogInput bottomBallSensor;
-  private final AnalogInput topBallSensor;
+  // private final AnalogInput bottomBallSensor;
+  // private final AnalogInput topBallSensor;
 
   private Solenoid ballGate;
 
@@ -51,8 +51,8 @@ public class MagazineSystem extends SubsystemBase {
 
     storedBalls = 3; // 3;
 
-    bottomBallSensor = new AnalogInput(Magazine.BOT_SENSOR_PORT);
-    topBallSensor = new AnalogInput(Magazine.TOP_SENSOR_PORT);
+    // bottomBallSensor = new AnalogInput(Magazine.BOT_SENSOR_PORT);
+    // topBallSensor = new AnalogInput(Magazine.TOP_SENSOR_PORT);
 
     ballGate = new Solenoid(Magazine.GATE_PORT);
     closeGate();
@@ -97,9 +97,9 @@ public class MagazineSystem extends SubsystemBase {
     // This method will be called once per scheduler run
 
     SmartDashboard.putNumber("Ball count", storedBalls);
-    SmartDashboard.putNumber("Filtered sensor reading", botttomBallFilter.calculate(bottomBallSensor.getAverageValue()));
-    SmartDashboard.putNumber("Bottom sensor reading", bottomBallSensor.getAverageValue());
-    SmartDashboard.putNumber("Top sensor reading", topBallSensor.getAverageValue());
+    // SmartDashboard.putNumber("Filtered sensor reading", botttomBallFilter.calculate(bottomBallSensor.getAverageValue()));
+    // SmartDashboard.putNumber("Bottom sensor reading", bottomBallSensor.getAverageValue());
+    // SmartDashboard.putNumber("Top sensor reading", topBallSensor.getAverageValue());
     SmartDashboard.putBoolean("Ball gate open", ballGateOpen);
   }
 
@@ -116,15 +116,15 @@ public class MagazineSystem extends SubsystemBase {
     storedBalls--;
   }
 
-  public AnalogInput getBottomBallSensor() {
-    return bottomBallSensor;
-  }
+  // public AnalogInput getBottomBallSensor() {
+  //   return bottomBallSensor;
+  // }
 
   public boolean isMagFull() { return storedBalls >= 3; }
 
-  public AnalogInput getTopBallSensor() {
-    return topBallSensor;
-  }
+  // public AnalogInput getTopBallSensor() {
+  //   return topBallSensor;
+  // }
 
   public void openGate() {
     ballGate.set(false);

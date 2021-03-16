@@ -28,6 +28,7 @@ import com.irontigers.robot.commands.RunShooterAtSpeed;
 import com.irontigers.robot.commands.Shoot;
 import com.irontigers.robot.commands.StopShooter;
 import com.irontigers.robot.commands.VisionAim;
+import com.irontigers.robot.sensors.IRRangefinder;
 import com.irontigers.robot.subsystems.CorrectXboxController;
 import com.irontigers.robot.subsystems.DriveSystem;
 import com.irontigers.robot.subsystems.MagazineSystem;
@@ -110,9 +111,11 @@ public class RobotContainer {
 
   private JoystickDriveCommand joyDrive = new JoystickDriveCommand(driveSystem, controller);
   private AutonomousDrive autonomousDrive = new AutonomousDrive(driveSystem);
-  private BallPresenceTrigger topBallSensor = new BallPresenceTrigger(Constants.Magazine.TOP_SENSOR_PORT, 25);
 
-  private BallPresenceTrigger bottomBallSensor = new BallPresenceTrigger(Constants.Magazine.BOT_SENSOR_PORT, 25);
+  private IRRangefinder topBallSensor = new IRRangefinder(Constants.Magazine.TOP_SENSOR_PORT);
+  private BallPresenceTrigger topBallTrigger = new BallPresenceTrigger(topBallSensor, 25);
+  private IRRangefinder bottomBallSensor = new IRRangefinder(Constants.Magazine.BOT_SENSOR_PORT);
+  private BallPresenceTrigger bottomBallTrigger = new BallPresenceTrigger(bottomBallSensor, 25);
   private MedianFilter bottomSensorFilter = new MedianFilter(5);
 
   // private JoystickButton increaseFlywheelButton = new JoystickButton(controller, kStart.value);
@@ -129,7 +132,7 @@ public class RobotContainer {
 
   private SequentialCommandGroup shootOnceCommand = new SequentialCommandGroup(
       // new InstantCommand(visionSystem::setToVision), new VisionAim(shooterSystem, visionSystem),
-      new Shoot(magSystem, shooterSystem, visionSystem, topBallSensor),
+      new Shoot(magSystem, shooterSystem, visionSystem, topBallTrigger),
       new InstantCommand(magSystem::closeGate, magSystem), new WaitCommand(0.5), new StopShooter(shooterSystem),
       new InstantCommand(visionSystem::setToDriving));
 
@@ -178,8 +181,8 @@ public class RobotContainer {
     // decreaseFlywheelButton.whenPressed(() -> shooterSystem.setTargetRPS(8),
     //     shooterSystem);
 
-    bottomBallSensor.whenInactive(magSystem::incrementBalls);
-    topBallSensor.whenInactive(magSystem::decrementBalls);
+    bottomBallTrigger.whenInactive(magSystem::incrementBalls);
+    topBallTrigger.whenInactive(magSystem::decrementBalls);
 
     powPortForwardButton.whenPressed(
       new AutonomousDrive(driveSystem, 
@@ -311,7 +314,7 @@ public class RobotContainer {
   private Command getShootAllCommand() {
     SequentialCommandGroup shootAllCommand = new SequentialCommandGroup(new VisionAim(shooterSystem, visionSystem));
     for (int i = 0; i < magSystem.getStoredBalls(); i++) {
-      shootAllCommand = shootAllCommand.andThen(new Shoot(magSystem, shooterSystem, visionSystem, topBallSensor));
+      shootAllCommand = shootAllCommand.andThen(new Shoot(magSystem, shooterSystem, visionSystem, topBallTrigger));
     }
 
     return shootAllCommand.andThen(new InstantCommand(magSystem::closeGate, magSystem), new WaitCommand(0.5),
@@ -321,5 +324,19 @@ public class RobotContainer {
 
   public VisionSystem getVisionSystem() {
     return visionSystem;
+  }
+
+  /**
+   * @return the topBallSensor
+   */
+  public IRRangefinder getTopBallSensor() {
+    return topBallSensor;
+  }
+
+  /**
+   * @return the bottomBallSensor
+   */
+  public IRRangefinder getBottomBallSensor() {
+    return bottomBallSensor;
   }
 }

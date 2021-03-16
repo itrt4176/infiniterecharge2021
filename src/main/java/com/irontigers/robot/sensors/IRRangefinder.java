@@ -5,11 +5,14 @@
 package com.irontigers.robot.sensors;
 
 import edu.wpi.first.wpilibj.AnalogInput;
+import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
+import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
 
 /** Add your docs here. */
 public class IRRangefinder extends AnalogInput {
     public IRRangefinder(final int channel) {
         super(channel);
+        SendableRegistry.addLW(this, "IRRangefinder", channel);
     }
 
     private double scaleToDistance(double voltage) {
@@ -22,5 +25,11 @@ public class IRRangefinder extends AnalogInput {
 
     public double getAverageDistance() {
         return scaleToDistance(getAverageVoltage());
+    }
+
+    @Override
+    public void initSendable(SendableBuilder builder) {
+        builder.setSmartDashboardType("Analog Input");
+        builder.addDoubleProperty("Value", this::getAverageDistance, null);
     }
 }
