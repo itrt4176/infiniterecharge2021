@@ -85,9 +85,9 @@ public class VisionAim extends CommandBase {
       return true;
     }
 
-    if (Math.abs(setpoint - shooterSys.getTurretAngle()) < 0.21) { // 0.22 degree deadband, should make it a constant
+    if (Math.abs(setpoint - shooterSys.getTurretAngle()) < 3) { // 0.22 degree deadband, should make it a constant
         turnTurret = false;
-        if (Math.abs(visionSys.getXAngle()) < 0.21) {
+        if (Math.abs(visionSys.getXAngle()) < 3) {
           return true;
         } else {
           setpoint = shooterSys.getTurretAngle() + visionSys.getXAngle();

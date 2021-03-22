@@ -58,11 +58,16 @@ public class Robot extends TimedRobot {
   @Override
   public void disabledInit() {
     // CommandScheduler.getInstance().cancelAll();
+    SmartDashboard.putBoolean("Driving Mode", false);
   }
 
   @Override
   public void disabledPeriodic() {
-    m_robotContainer.getVisionSystem().setToDriving();
+    if (SmartDashboard.getBoolean("Driving Mode", false)) {
+      m_robotContainer.getVisionSystem().setToDriving();
+    } else {
+      m_robotContainer.getVisionSystem().setToVision();
+    }
   }
 
   /**

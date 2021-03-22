@@ -13,6 +13,7 @@ import com.irontigers.robot.subsystems.ShooterSystem;
 import com.irontigers.robot.subsystems.VisionSystem;
 import com.irontigers.robot.triggers.BallPresenceTrigger;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.ParallelDeadlineGroup;
@@ -36,7 +37,7 @@ public class Shoot extends SequentialCommandGroup {
     // Add your commands in the super() call, e.g.
     // super(new FooCommand(), new BarCommand());
     super(
-      // new InstantCommand(visionSys::setToVision),
+      new InstantCommand(visionSys::setToVision),
       new WaitCommand(0.2),
       new InstantCommand(magSystem::disableIntake, magSystem),
       new InstantCommand(magSystem::closeGate),
@@ -52,32 +53,42 @@ public class Shoot extends SequentialCommandGroup {
           new WaitUntilCommand(() -> {
             return !shooterSystem.isReadyToShoot();
           }),
-          // new InstantCommand(magSystem::decrementBalls, magSystem),
+          new InstantCommand(magSystem::decrementBalls, magSystem),
           new InstantCommand(magSystem::closeGate, magSystem)
         )
       )
     );
+    SmartDashboard.putNumber("Shooter Speed", shooterSystem.getSpeedForDist(visionSys.getDistanceToTarget()));
   }
-
-  
 
   /**
    * Creates a new Shoot.
    */
-  // public Shoot(MagazineSystem magSystem, ShooterSystem shooterSystem, VisionSystem visionSys) {
-  //   // Add your commands in the super() call, e.g.
-  //   // super(new FooCommand(), new BarCommand());
-  //   super(
-  //     new InstantCommand(magSystem::disableIntake, magSystem),
-  //     new ParallelCommandGroup(
-  //       new RunShooterPID(shooterSystem, shooterSystem.getSpeedForDist(visionSys.getDistanceToTarget())),
-  //       new SequentialCommandGroup(
-  //       new InstantCommand(magSystem::enableMagazine, magSystem),
-  //       new InstantCommand(magSystem::openGate, magSystem), new WaitUntilCommand(() -> {
-  //         return !shooterSystem.isReadyToShoot();
-  //       }), new InstantCommand(magSystem::decrementBalls, magSystem)
-  //     )
-  //     )
-  //   );
-  // }
+  public Shoot(MagazineSystem magSystem, ShooterSystem shooterSystem, VisionSystem visionSys, BallPresenceTrigger topBallSensor, double speed) {
+    // Add your commands in the super() call, e.g.
+    // super(new FooCommand(), new BarCommand());
+    super(
+      new InstantCommand(visionSys::setToVision),
+      new WaitCommand(0.2),
+      new InstantCommand(magSystem::disableIntake, magSystem),
+      new InstantCommand(magSystem::closeGate),
+      new ParallelRaceGroup(
+        new SequentialCommandGroup(
+          new InstantCommand(() -> shooterSystem.setTargetRPS(speed)),//shooterSystem.getSpeedForDist(visionSys.getDistanceToTarget()))),
+          new RunShooterAtSpeed(shooterSystem, speed)
+        ),
+        new SequentialCommandGroup(
+          new WaitUntilCommand(shooterSystem::isReadyToShoot),
+          new InstantCommand(magSystem::enableMagazine, magSystem),
+          new InstantCommand(magSystem::openGate, magSystem),
+          new WaitUntilCommand(() -> {
+            return !shooterSystem.isReadyToShoot();
+          }),
+          new InstantCommand(magSystem::decrementBalls, magSystem),
+          new InstantCommand(magSystem::closeGate, magSystem)
+        )
+      )
+    );
+    // SmartDashboard.putNumber("Shooter Speed", shooterSystem.getSpeedForDist(visionSys.getDistanceToTarget()));
+  }
 }

@@ -43,7 +43,8 @@ public class ShooterSystem extends SubsystemBase {
     // turretMotor.configIntegratedSensorInitializationStrategy(SensorInitializationStrategy.BootToZero);
     flywheelRPMFilter = LinearFilter.movingAverage(20);
 
-    shooterSpeedMap = new InterpolatingTreeMap<>(6);
+    shooterSpeedMap = new InterpolatingTreeMap<>(7);
+    shooterSpeedMap.put(new InterpolatingDouble(-1.0), new InterpolatingDouble(8.0));
     shooterSpeedMap.put(new InterpolatingDouble(97.0), new InterpolatingDouble(60.1));
     shooterSpeedMap.put(new InterpolatingDouble(99.0), new InterpolatingDouble(57.7));
     shooterSpeedMap.put(new InterpolatingDouble(118.0), new InterpolatingDouble(56.1));

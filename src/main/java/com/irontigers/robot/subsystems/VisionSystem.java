@@ -63,7 +63,7 @@ public class VisionSystem extends SubsystemBase {
   }
 
   public void setToDriving() {
-    limelight.getEntry("camMode").setNumber(1);
+    // limelight.getEntry("camMode").setNumber(1);
   }
 
   public void setToVision() {
@@ -81,5 +81,6 @@ public class VisionSystem extends SubsystemBase {
     SmartDashboard.putBoolean("Limelight Sees Target", seesTarget);
     SmartDashboard.putNumber("Limelight X Angle", xAngle);
     SmartDashboard.putNumber("Limelight Y Angle", yAngle);
+    SmartDashboard.putNumber("Distance to target", getDistanceToTarget());
   }
 }

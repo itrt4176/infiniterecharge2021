@@ -87,6 +87,7 @@ public class DriveSystem extends SubsystemBase {
     tab = Shuffleboard.getTab("Tab 3");
     yOffset = tab.add("Distance from left side", 13.46875*12).getEntry();
 
+    /* Assign CANs to motors and their IDs for the left side */
     frontLeft = new CANSparkMax(Drive.FRNT_LFT, CANSparkMaxLowLevel.MotorType.kBrushless);
     backLeft = new CANSparkMax(Drive.BCK_LFT, CANSparkMaxLowLevel.MotorType.kBrushless);
     leftMotors = new SpeedControllerGroup(frontLeft, backLeft);
@@ -94,6 +95,7 @@ public class DriveSystem extends SubsystemBase {
     leftEncoder = frontLeft.getEncoder();
     leftEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
 
+    /* Assign CANs to motors and their IDs for the right side */
     frontRight = new CANSparkMax(Drive.FRNT_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
     // frontRight.setInverted(true);
     backRight = new CANSparkMax(Drive.BCK_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
@@ -112,11 +114,12 @@ public class DriveSystem extends SubsystemBase {
     
     gameField = new Field2d();
 
-
+    /* Create a virtual robot for simulation purposes */
     if (!Robot.isReal()) {
       leftMotorVolts = 0;
       rightMotorVolts = 0;
 
+      
       driveSim = new DifferentialDrivetrainSim(
         DCMotor.getNEO(2),
         8.45, 
@@ -136,28 +139,48 @@ public class DriveSystem extends SubsystemBase {
     }
   }
 
+  /**
+   * @return The pose of the robot
+   */
   public Supplier<Pose2d> getPose2d() {
     return () -> odometer.getPoseMeters(); 
   }
 
+  /**
+   * @return The wheel speeds of the right and left parts of the robot 
+   *         to provide to the autonomous command
+   */
   public Supplier<DifferentialDriveWheelSpeeds> getWheelSpeeds() {
     return () -> new DifferentialDriveWheelSpeeds(leftEncoder.getVelocity(), rightEncoder.getVelocity());
   }
 
+  /**
+   * Resets the pose
+   * @param pose is the position of the robot(x, y, rotation). 
+   */
   public void resetOdometry(Pose2d pose) {
     resetEncoders();
     odometer.resetPosition(pose, navX.getRotation2d());
   }
 
+  /**
+   * Set the encoders to zero according to the position
+   */
   public void resetEncoders() {
     leftEncoder.setPosition(0);
     rightEncoder.setPosition(0);
   }
 
+  /**
+   * @return Distance traveled by the left encoder
+   */
   private double getLeftDistance() {
     return leftEncoder.getPosition();
   }
 
+  /**
+   * @return Distance traveled by the right encoder
+   */
   private double getRightDistance() {
     return -rightEncoder.getPosition();
   }
@@ -189,6 +212,11 @@ public class DriveSystem extends SubsystemBase {
 
   }
 
+  /**
+   * Access the drawn path
+   * @param pathName The name of the file
+   * @return The desired trajectory
+   */
   public static Trajectory path(String pathName) {
     String jsonFile = "paths/output/" + pathName + ".wpilib.json";
     Trajectory trajectory = new Trajectory();

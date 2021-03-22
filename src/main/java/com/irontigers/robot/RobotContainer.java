@@ -75,6 +75,7 @@ public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   private CorrectXboxController controller = new CorrectXboxController(Controllers.PORT);
   private CorrectXboxController testController = new CorrectXboxController(Controllers.TEST_PORT);
+  private CorrectXboxController countController = new CorrectXboxController(Controllers.TEST_PORT);
 
   private JoystickButton shootAllButton = new JoystickButton(controller, kA.value);
   private JoystickButton shootOneButton = new JoystickButton(controller, kB.value);
@@ -82,11 +83,15 @@ public class RobotContainer {
   private JoystickButton autoAimButton = new JoystickButton(controller, kBumperRight.value);
   public boolean isSmallNum;
 
-  private JoystickButton incrementCountButton = new JoystickButton(controller, kStart.value);
-  private JoystickButton decrementCountButton = new JoystickButton(controller, kBack.value);
+  private JoystickButton incrementCountButton = new JoystickButton(countController, kStart.value);
+  private JoystickButton decrementCountButton = new JoystickButton(countController, kBack.value);
 
-  JoystickButton opengateButton = new JoystickButton(testController, kBumperRight.value);
-  JoystickButton closegateButton = new JoystickButton(testController, kBumperLeft.value);
+  private JoystickButton opengateButton = new JoystickButton(testController, kBumperRight.value);
+  private JoystickButton droolButton = new JoystickButton(controller, kBumperLeft.value);
+  private JoystickButton stopshooterCommand = new JoystickButton(countController, kBumperLeft.value);
+  
+
+
   //
   //
   //
@@ -113,9 +118,9 @@ public class RobotContainer {
   private AutonomousDrive autonomousDrive = new AutonomousDrive(driveSystem);
 
   private IRRangefinder topBallSensor = new IRRangefinder(Constants.Magazine.TOP_SENSOR_PORT);
-  private BallPresenceTrigger topBallTrigger = new BallPresenceTrigger(topBallSensor, 25);
+  private BallPresenceTrigger topBallTrigger = new BallPresenceTrigger(topBallSensor, 50);
   private IRRangefinder bottomBallSensor = new IRRangefinder(Constants.Magazine.BOT_SENSOR_PORT);
-  private BallPresenceTrigger bottomBallTrigger = new BallPresenceTrigger(bottomBallSensor, 25);
+  private BallPresenceTrigger bottomBallTrigger = new BallPresenceTrigger(bottomBallSensor, 50);
   private MedianFilter bottomSensorFilter = new MedianFilter(5);
 
   // private JoystickButton increaseFlywheelButton = new JoystickButton(controller, kStart.value);
@@ -123,6 +128,7 @@ public class RobotContainer {
     
 
   private ConditionalCommand intakeSwitchCommand = new ConditionalCommand(new SequentialCommandGroup( // onTrue
+      new WaitCommand(1),
       new InstantCommand(magSystem::disableIntake, magSystem),
       new InstantCommand(magSystem::disableMagazine, magSystem)),
       new SequentialCommandGroup( // onFalse
@@ -160,12 +166,13 @@ public class RobotContainer {
    */
   private void configureButtonBindings() {
     shootOneButton.whenPressed(shootOnceCommand);
-    shootAllButton.whenPressed(new SequentialCommandGroup(
-          new InstantCommand(visionSystem::setToVision),
-          new InstantCommand(magSystem::closeGate),
-            new InstantCommand(visionSystem::enableLeds), new WaitUntilCommand(visionSystem::seesTarget),
-            new VisionAim(shooterSystem, visionSystem), getShootAllCommand(), new InstantCommand(visionSystem::disableLeds),
-            new InstantCommand(visionSystem::setToDriving)));
+    shootAllButton.whenPressed(//new SequentialCommandGroup(
+          // new InstantCommand(visionSystem::setToVision),
+          // new InstantCommand(magSystem::closeGate),
+          //   new InstantCommand(visionSystem::enableLeds), new WaitUntilCommand(visionSystem::seesTarget),
+          //   new VisionAim(shooterSystem, visionSystem), getShootAllCommand(), new InstantCommand(visionSystem::disableLeds),
+          //   new InstantCommand(visionSystem::setToDriving)))
+          getShootAllCommand());
 
     incrementCountButton.whenPressed(new InstantCommand(magSystem::incrementBalls));
     decrementCountButton.whenPressed(new InstantCommand(magSystem::decrementBalls));
@@ -173,8 +180,9 @@ public class RobotContainer {
     turretLeftButton.whenHeld(new RotateTurret(shooterSystem, RotateTurret.Direction.LEFT));
     turretRightButton.whenHeld(new RotateTurret(shooterSystem, RotateTurret.Direction.RIGHT));
 
-    opengateButton.whenPressed(new InstantCommand(magSystem::openGate, magSystem));
-    closegateButton.whenPressed(new InstantCommand(magSystem::closeGate, magSystem));
+    // opengateButton.whenPressed(new InstantCommand(magSystem::openGate, magSystem));
+    droolButton.whenPressed(droolAllCommand());
+    stopshooterCommand.whenPressed(() -> cancelLastShot.cancel());
 
     // increaseFlywheelButton.whenPressed(() -> shooterSystem.setTargetRPS(60),
     //     shooterSystem);
@@ -310,11 +318,24 @@ public class RobotContainer {
     
   }
 
+  private Command cancelLastShot = getShootAllCommand();
+
   /** Shoots all the balls */ 
   private Command getShootAllCommand() {
     SequentialCommandGroup shootAllCommand = new SequentialCommandGroup(new VisionAim(shooterSystem, visionSystem));
     for (int i = 0; i < magSystem.getStoredBalls(); i++) {
       shootAllCommand = shootAllCommand.andThen(new Shoot(magSystem, shooterSystem, visionSystem, topBallTrigger));
+    }
+
+    return shootAllCommand.andThen(new InstantCommand(magSystem::closeGate, magSystem), new WaitCommand(0.5),
+        new StopShooter(shooterSystem), new InstantCommand(visionSystem::setToDriving));
+
+  }
+
+  private Command droolAllCommand() {
+    SequentialCommandGroup shootAllCommand = new SequentialCommandGroup(new VisionAim(shooterSystem, visionSystem));
+    for (int i = 0; i < magSystem.getStoredBalls(); i++) {
+      shootAllCommand = shootAllCommand.andThen(new Shoot(magSystem, shooterSystem, visionSystem, topBallTrigger, 8.0));
     }
 
     return shootAllCommand.andThen(new InstantCommand(magSystem::closeGate, magSystem), new WaitCommand(0.5),
