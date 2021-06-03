@@ -32,13 +32,13 @@ public class Shoot extends SequentialCommandGroup {
     // Add your commands in the super() call, e.g.
     // super(new FooCommand(), new BarCommand());
     super(
-      new InstantCommand(visionSys::setToVision),
+      // new InstantCommand(visionSys::setToVision),
       new WaitCommand(0.2),
       new InstantCommand(magSystem::disableIntake, magSystem),
       new InstantCommand(magSystem::closeGate),
       new ParallelRaceGroup(
         new SequentialCommandGroup(
-          new InstantCommand(() -> shooterSystem.setTargetRPS(shooterSystem.getSpeedForDist(visionSys.getDistanceToTarget()))),
+          new InstantCommand(() -> shooterSystem.setTargetRPS(60))/** shooterSystem.getSpeedForDist(visionSys.getDistanceToTarget())))*/,
           new RunShooterAtSpeed(shooterSystem, shooterSystem.getTargetRPS())
         ),
         new SequentialCommandGroup(
@@ -51,6 +51,20 @@ public class Shoot extends SequentialCommandGroup {
           new InstantCommand(magSystem::decrementBalls, magSystem)
         )
       )
+    );
+  }
+
+  public Shoot(MagazineSystem magsys, ShooterSystem shooter) {
+    super(
+      new ParallelRaceGroup(
+        new SequentialCommandGroup(
+          new InstantCommand(magsys::closeGate),
+          new InstantCommand(magsys::enableMagazine),
+          new WaitCommand(0.2),
+          new InstantCommand(magsys::openGate))
+        ,
+        new InstantCommand(() -> shooter.setFlywheelPower(0.5))
+        )
     );
   }
 

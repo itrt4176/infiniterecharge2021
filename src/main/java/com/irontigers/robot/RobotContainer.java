@@ -190,6 +190,10 @@ public class RobotContainer {
   //       new InstantCommand(visionSystem::setToDriving));
   // }
 
+  private Command simpleShoot() {
+    return new InstantCommand();
+  }
+
 //////////////////////////////////////////
 
 
