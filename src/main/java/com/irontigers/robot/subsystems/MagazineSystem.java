@@ -7,15 +7,20 @@
 
 package com.irontigers.robot.subsystems;
 
+import java.util.Map;
+
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
+import com.irontigers.robot.Dashboard;
 import com.irontigers.robot.Constants.Magazine;
+import com.irontigers.robot.Dashboard.TAB;
 
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.AnalogPotentiometer;
 import edu.wpi.first.wpilibj.LinearFilter;
 import edu.wpi.first.wpilibj.MedianFilter;
 import edu.wpi.first.wpilibj.Solenoid;
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Units;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -39,10 +44,13 @@ public class MagazineSystem extends SubsystemBase {
   private boolean ballGateOpen = false;
   private boolean ballGateInitComplete = false;
 
+  private Dashboard dash;
+
   /**
    * Creates a new MagazineSystem.
    */
   public MagazineSystem() {
+    dash = Dashboard.getInstance();
     magazineMotor = new WPI_TalonFX(Magazine.MAG_ADDR);
     magazineMotor.setInverted(true);
     // enableMagazine();
@@ -58,6 +66,18 @@ public class MagazineSystem extends SubsystemBase {
     closeGate();
 
     botttomBallFilter = new MedianFilter(20);
+
+    dash.getTab(TAB.AUTO).addNumber("Balls", this::getStoredBalls).withWidget(BuiltInWidgets.kDial).withPosition(0, 0)
+        .withSize(4, 3).withProperties(Map.of("min", 0, "max", 3));
+
+    dash.getTab(TAB.TELEOP).addNumber("Balls", this::getStoredBalls).withWidget(BuiltInWidgets.kDial).withPosition(0, 0)
+        .withSize(4, 3).withProperties(Map.of("min", 0, "max", 3));
+
+    dash.getTab(TAB.TELEOP).addBoolean("Intake", this::isIntakeEnabled).withWidget(BuiltInWidgets.kBooleanBox)
+        .withPosition(0, 3).withSize(1, 1);
+
+    dash.getTab(TAB.TELEOP).addBoolean("Magazine", this::isIntakeEnabled).withWidget(BuiltInWidgets.kBooleanBox)
+        .withPosition(1, 3).withSize(1, 1);
   }
 
   public void enableMagazine() {
@@ -108,12 +128,24 @@ public class MagazineSystem extends SubsystemBase {
   }
 
   public void incrementBalls() {
-    storedBalls++;
+    if (storedBalls < 3) {
+      storedBalls++;
+    }
   }
 
   public void decrementBalls() {
     closeGate();
-    storedBalls--;
+    if (storedBalls > 0) {
+      storedBalls--;
+    }
+  }
+
+  public void setStoredBalls(int balls) {
+    if (balls > 3 || balls < 0) {
+      throw new IllegalArgumentException("Stored balls must be at least 0 and no more than 3.");
+    } else {
+      storedBalls = balls;
+    }
   }
 
   public AnalogInput getBottomBallSensor() {

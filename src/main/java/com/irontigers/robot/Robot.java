@@ -8,8 +8,11 @@
 package com.irontigers.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.shuffleboard.EventImportance;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -22,6 +25,8 @@ public class Robot extends TimedRobot {
 
   private RobotContainer m_robotContainer;
 
+  private Dashboard dash;
+
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
@@ -30,7 +35,11 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
+
     m_robotContainer = new RobotContainer();
+    dash = Dashboard.getInstance();
+    Shuffleboard.setRecordingFileNameFormat("BattleCry-${date}-${time}");
+
   }
 
   /**
@@ -54,7 +63,9 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void disabledInit() {
-    // CommandScheduler.getInstance().cancelAll();
+    CommandScheduler.getInstance().cancelAll();
+    Shuffleboard.stopRecording();
+    dash.setActiveTab(Dashboard.TAB.SETUP);
   }
 
   @Override
@@ -67,6 +78,9 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void autonomousInit() {
+    Shuffleboard.startRecording();
+    dash.setActiveTab(Dashboard.TAB.AUTO);
+    Shuffleboard.addEventMarker("Auto Start", EventImportance.kNormal);
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
     // schedule the autonomous command (example)
@@ -89,6 +103,8 @@ public class Robot extends TimedRobot {
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
     // this line or comment it out.
+    dash.setActiveTab(Dashboard.TAB.TELEOP);
+    Shuffleboard.addEventMarker("Telop started", EventImportance.kNormal);
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
@@ -105,6 +121,7 @@ public class Robot extends TimedRobot {
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
+    // dash.setActiveTab(Dashboard.TAB.DEBUG);
     m_robotContainer.initTesting();
   }
 

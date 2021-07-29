@@ -16,6 +16,10 @@ import static edu.wpi.first.wpilibj.XboxController.Button.kStart;
 import static edu.wpi.first.wpilibj.XboxController.Button.kX;
 import static edu.wpi.first.wpilibj.XboxController.Button.kY;
 
+import java.util.Map;
+
+import static com.irontigers.robot.Dashboard.TAB;
+
 import com.irontigers.robot.Constants.Controllers;
 import com.irontigers.robot.commands.AutonomousDrive;
 import com.irontigers.robot.commands.JoystickDriveCommand;
@@ -36,7 +40,17 @@ import com.irontigers.robot.triggers.DPadButton.DPadDirection;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.MedianFilter;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.geometry.Pose2d;
+import edu.wpi.first.wpilibj.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
+import edu.wpi.first.wpilibj.shuffleboard.EventImportance;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandGroupBase;
 import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
@@ -53,40 +67,34 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
  */
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
-  private CorrectXboxController controller = new CorrectXboxController(Controllers.PORT);
-  private CorrectXboxController testController = new CorrectXboxController(Controllers.TEST_PORT);
+  private CorrectXboxController driveController = new CorrectXboxController(Controllers.PORT);
+  private CorrectXboxController coController = new CorrectXboxController(Controllers.CO_PORT);
 
-  private JoystickButton shootAllButton = new JoystickButton(controller, kA.value);
-  private JoystickButton shootOneButton = new JoystickButton(controller, kB.value);
-  private JoystickButton cancelShootingButton = new JoystickButton(controller, kY.value);
-  private JoystickButton autoAimButton = new JoystickButton(controller, kBumperRight.value);
+  private JoystickButton shootAllButton = new JoystickButton(driveController, kA.value);
+  private JoystickButton shootOneButton = new JoystickButton(driveController, kB.value);
+  private JoystickButton cancelShootingButton = new JoystickButton(driveController, kY.value);
+  private JoystickButton autoAimButton = new JoystickButton(driveController, kBumperRight.value);
 
-  private JoystickButton incrementCountButton = new JoystickButton(controller, kStart.value);
-  private JoystickButton decrementCountButton = new JoystickButton(controller, kBack.value);
-  //
-  //
-  //
-  //
+  private JoystickButton incrementCountButton = new JoystickButton(coController, kB.value);
+  private JoystickButton decrementCountButton = new JoystickButton(coController, kA.value);
 
-  //
-  //
-  //
-  //
-  private DPadButton turretLeftButton = new DPadButton(controller, DPadDirection.LEFT);
-  private DPadButton turretRightButton = new DPadButton(controller, DPadDirection.RIGHT);
+  private DPadButton turretLeftButton = new DPadButton(driveController, DPadDirection.LEFT);
+  private DPadButton turretRightButton = new DPadButton(driveController, DPadDirection.RIGHT);
 
-  private JoystickButton startAutonomousButton = new JoystickButton(controller, kBack.value);
+  private JoystickButton startAutonomousButton = new JoystickButton(driveController, kBack.value);
 
   private DriveSystem driveSystem = new DriveSystem();
   private ShooterSystem shooterSystem = new ShooterSystem();
   private MagazineSystem magSystem = new MagazineSystem();
   private VisionSystem visionSystem = new VisionSystem();
 
-  private JoystickDriveCommand joyDrive = new JoystickDriveCommand(driveSystem, controller);
+  private JoystickDriveCommand joyDrive = new JoystickDriveCommand(driveSystem, driveController);
   private AutonomousDrive autonomousDrive = new AutonomousDrive(driveSystem);
   private BallPresenceTrigger topBallSensor = new BallPresenceTrigger(magSystem.getTopBallSensor());
   private BallPresenceTrigger bottomBallSensor = new BallPresenceTrigger(magSystem.getBottomBallSensor());
   private MedianFilter bottomSensorFilter = new MedianFilter(5);
+
+  private Dashboard dash = Dashboard.getInstance();
 
   private ConditionalCommand intakeSwitchCommand = new ConditionalCommand(new SequentialCommandGroup( // onTrue
       new InstantCommand(magSystem::disableIntake, magSystem),
@@ -102,6 +110,10 @@ public class RobotContainer {
       new InstantCommand(magSystem::closeGate, magSystem), new WaitCommand(0.5), new StopShooter(shooterSystem),
       new InstantCommand(visionSystem::setToDriving));
 
+  private Command currentShootCommand = new InstantCommand();
+  
+  SendableChooser<Integer> ballPreload = new SendableChooser<>();
+
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
@@ -113,6 +125,21 @@ public class RobotContainer {
 
     intakeSwitchCommand.initialize();
     magSystem.setDefaultCommand(intakeSwitchCommand);
+
+    ShuffleboardLayout autoSettings = dash.getTab(TAB.SETUP)
+        .getLayout("Autonomous Settings", BuiltInLayouts.kGrid)
+        .withSize(4, 2)
+        .withPosition(0, 0)
+        .withProperties(Map.of("Number of columns", 1, "Number of rows", 2, "Label position", "LEFT"));
+
+    
+    ballPreload.setDefaultOption("3", 3);
+    ballPreload.addOption("2", 2);
+    ballPreload.addOption("1", 1);
+    ballPreload.addOption("0", 0);
+    SendableRegistry.setName(ballPreload, "Balls Preloaded");
+
+    autoSettings.add(ballPreload).withWidget(BuiltInWidgets.kSplitButtonChooser);
   }
 
   /**
@@ -122,10 +149,12 @@ public class RobotContainer {
    * passing it to a {@link edu.wpi.first.wpilibj2.command.button.JoystickButton}.
    */
   private void configureButtonBindings() {
-    shootOneButton.whenPressed(shootOnceCommand);
-    shootAllButton.whenPressed(getShootAllCommand());
+    shootOneButton.whenPressed(new InstantCommand(() -> { currentShootCommand = shootOnceCommand; currentShootCommand.schedule();}));
+    shootAllButton.whenPressed(new InstantCommand(() -> { currentShootCommand = getShootAllCommand(); currentShootCommand.schedule();}));
+    cancelShootingButton.cancelWhenPressed(currentShootCommand);
 
-    incrementCountButton.whenPressed(new InstantCommand(magSystem::incrementBalls));
+    incrementCountButton.whenPressed(new InstantCommand(magSystem::incrementBalls).andThen(new InstantCommand(() -> {
+      Shuffleboard.addEventMarker("Acquired ball", EventImportance.kLow); })));
     decrementCountButton.whenPressed(new InstantCommand(magSystem::decrementBalls));
 
     turretLeftButton.whenHeld(new RotateTurret(shooterSystem, RotateTurret.Direction.LEFT));
@@ -149,26 +178,30 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An ExampleCommand will run in autonomous
+    magSystem.setStoredBalls(ballPreload.getSelected());
+
     return new SequentialCommandGroup(
       new InstantCommand(visionSystem::setToVision),
       new InstantCommand(magSystem::closeGate), new AutonomousDrive(driveSystem),
         new InstantCommand(visionSystem::enableLeds), new WaitUntilCommand(visionSystem::seesTarget),
         new VisionAim(shooterSystem, visionSystem), getShootAllCommand(), new InstantCommand(visionSystem::disableLeds),
-        new InstantCommand(visionSystem::setToDriving));
+        new InstantCommand(visionSystem::setToDriving)).andThen(() -> {
+          magSystem.setStoredBalls(0);
+        }, magSystem);
   }
 
   public void initTesting() {
     // visionSystem.disableLeds();
     visionSystem.enableLeds();
     visionSystem.setToVision();
-    JoystickButton enableShooterButton = new JoystickButton(testController, kX.value);
-    JoystickButton disableMagButton = new JoystickButton(testController, kY.value);
-    JoystickButton shootButton = new JoystickButton(testController, kA.value);
-    JoystickButton stopShooterButton = new JoystickButton(testController, kB.value);
-    JoystickButton increaseFlywheelButton = new JoystickButton(testController, kStart.value);
-    JoystickButton decreaseFlywheelButton = new JoystickButton(testController, kBack.value);
-    JoystickButton opengateButton = new JoystickButton(testController, kBumperRight.value);
-    JoystickButton closegateButton = new JoystickButton(testController, kBumperLeft.value);
+    JoystickButton enableShooterButton = new JoystickButton(coController, kX.value);
+    JoystickButton disableMagButton = new JoystickButton(coController, kY.value);
+    JoystickButton shootButton = new JoystickButton(coController, kA.value);
+    JoystickButton stopShooterButton = new JoystickButton(coController, kB.value);
+    JoystickButton increaseFlywheelButton = new JoystickButton(coController, kStart.value);
+    JoystickButton decreaseFlywheelButton = new JoystickButton(coController, kBack.value);
+    JoystickButton opengateButton = new JoystickButton(coController, kBumperRight.value);
+    JoystickButton closegateButton = new JoystickButton(coController, kBumperLeft.value);
 
     enableShooterButton.whenPressed(() -> shooterSystem.setFlywheelPower(0.2), shooterSystem);
     disableMagButton.whenPressed(magSystem::disableMagazine, magSystem);

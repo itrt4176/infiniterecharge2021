@@ -7,11 +7,16 @@
 
 package com.irontigers.robot.commands;
 
+import com.irontigers.robot.Dashboard;
+import com.irontigers.robot.Dashboard.TAB;
 import com.irontigers.robot.subsystems.MagazineSystem;
 import com.irontigers.robot.subsystems.ShooterSystem;
 import com.irontigers.robot.subsystems.VisionSystem;
 import com.irontigers.robot.triggers.BallPresenceTrigger;
 
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
+import edu.wpi.first.wpilibj.shuffleboard.EventImportance;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.ParallelDeadlineGroup;
@@ -32,6 +37,9 @@ public class Shoot extends SequentialCommandGroup {
     // Add your commands in the super() call, e.g.
     // super(new FooCommand(), new BarCommand());
     super(
+      new InstantCommand(() -> {Dashboard.getInstance().getTab(TAB.TELEOP).addBoolean("Shooting", () -> {
+      return true;
+    }).withWidget(BuiltInWidgets.kBooleanBox).withPosition(3, 3).withSize(1, 1);}),
       new InstantCommand(visionSys::setToVision),
       new WaitCommand(0.2),
       new InstantCommand(magSystem::disableIntake, magSystem),
@@ -50,7 +58,13 @@ public class Shoot extends SequentialCommandGroup {
           }),
           new InstantCommand(magSystem::decrementBalls, magSystem)
         )
-      )
+      ),
+      new InstantCommand(() -> {
+        Dashboard.getInstance().getTab(TAB.TELEOP).addBoolean("Shooting", () -> {
+          return false;
+        }).withWidget(BuiltInWidgets.kBooleanBox).withPosition(3, 3).withSize(1, 1);
+      }),
+      new InstantCommand(() -> {Shuffleboard.addEventMarker("Shot ball", EventImportance.kHigh);})
     );
   }
 

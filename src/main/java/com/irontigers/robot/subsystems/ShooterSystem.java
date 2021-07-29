@@ -7,18 +7,29 @@
 
 package com.irontigers.robot.subsystems;
 
+import java.util.Map;
+
 import com.ctre.phoenix.Util;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+import com.irontigers.robot.Dashboard;
 import com.irontigers.robot.Constants.Shooter;
+import com.irontigers.robot.Dashboard.TAB;
 import com.irontigers.robot.util.InterpolatingDouble;
 import com.irontigers.robot.util.InterpolatingTreeMap;
 
 import edu.wpi.first.wpilibj.LinearFilter;
 import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
+import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class ShooterSystem extends SubsystemBase {
+  private Dashboard dash;
+
   private WPI_TalonFX flywheelMotor;
   private WPI_TalonFX turretMotor;
   private LinearFilter flywheelRPMFilter;
@@ -53,6 +64,44 @@ public class ShooterSystem extends SubsystemBase {
     shooterSpeedMap.put(new InterpolatingDouble(241.6), new InterpolatingDouble(62.6));
 
     targetSpeed = 60.1;
+
+    dash = Dashboard.getInstance();
+
+    ShuffleboardLayout turret = dash.getTab(TAB.SETUP).getLayout("Turret", BuiltInLayouts.kGrid).withSize(4, 2)
+        .withPosition(0, 2)
+        .withProperties(Map.of("Number of columns", 1, "Number of rows", 2, "Label position", "TOP"));
+
+    turret.addNumber("Angle", this::getTurretAngle)
+        .withWidget(BuiltInWidgets.kNumberBar)
+        .withProperties(Map.of("min", -30, "max", 30, "center", 0, "num tick marks", 7));
+
+    InstantCommand resetAngle = new InstantCommand() {
+
+      @Override
+      public void initialize() {
+        turretMotor.setSelectedSensorPosition(0);
+      }
+
+      @Override
+      public boolean runsWhenDisabled() {
+        return true;
+      }
+
+      @Override
+      public String getName() {
+        return "Reset";
+      }
+
+      @Override
+      public String toString() {
+        // TODO Auto-generated method stub
+        return "Reset Turret Angle";
+      }
+    };
+
+    SendableRegistry.setName(resetAngle, resetAngle.toString());
+
+    turret.add(resetAngle).withProperties(Map.of("_title", "Reset Turret Angle"));
   }
 
   /**

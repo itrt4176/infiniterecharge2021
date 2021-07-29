@@ -87,6 +87,7 @@ public final class Constants {
 
     public static final class Controllers {
         public static final int PORT = 0;
+        public static final int CO_PORT = 1;
         public static final int TEST_PORT = 1;
     }
 

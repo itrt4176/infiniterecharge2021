@@ -7,13 +7,18 @@
 
 package com.irontigers.robot.subsystems;
 
+import com.irontigers.robot.Constants;
+import com.irontigers.robot.Robot;
 import com.irontigers.robot.Constants.Drive;
-import com.kauailabs.navx.frc.AHRS;
+import com.irontigers.robot.sim.CANSparkMaxSim;
+// import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANEncoder;
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import com.revrobotics.CANSparkMaxLowLevel;
 
 import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
@@ -21,7 +26,11 @@ import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.wpilibj.simulation.ADXRS450_GyroSim;
+import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.util.Units;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -36,33 +45,43 @@ public class DriveSystem extends SubsystemBase {
 
   private DifferentialDrive drive;
 
-  private AHRS navX;
+  // private AHRS navX;
+  private ADXRS450_Gyro gyro;
 
   private CANEncoder leftEncoder;
   private CANEncoder rightEncoder;
 
   private DifferentialDriveOdometry odometer;
   private Pose2d robotPosition;
+  private final Field2d gameField;
 
   private ShuffleboardTab tab;
   private NetworkTableEntry yOffset;
+
+  private DifferentialDrivetrainSim driveSim;
+  private CANSparkMaxSim frontLeftSim;
+  private CANSparkMaxSim frontRightSim;
+  private ADXRS450_GyroSim navXSim;
+
+  private double leftMotorVolts;
+  private double rightMotorVolts;
 
   /**
    * Creates a new DriveSystem.
    */
   public DriveSystem() {
-    tab = Shuffleboard.getTab("Tab 3");
-    yOffset = tab.add("Distance from left side", 13.46875*12).getEntry();
+    // tab = Shuffleboard.getTab("Tab 3");
+    // yOffset = tab.add("Distance from left side", 13.46875 * 12).getEntry();
 
-    frontLeft = new CANSparkMax(Drive.FRNT_LFT, MotorType.kBrushless);
-    backLeft = new CANSparkMax(Drive.BCK_LFT, MotorType.kBrushless);
+    frontLeft = new CANSparkMax(Drive.FRNT_LFT, CANSparkMaxLowLevel.MotorType.kBrushless);
+    backLeft = new CANSparkMax(Drive.BCK_LFT, CANSparkMaxLowLevel.MotorType.kBrushless);
     leftMotors = new SpeedControllerGroup(frontLeft, backLeft);
 
     leftEncoder = frontLeft.getEncoder();
     leftEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
 
-    frontRight = new CANSparkMax(Drive.FRNT_RT, MotorType.kBrushless);
-    backRight = new CANSparkMax(Drive.BCK_RT, MotorType.kBrushless);
+    frontRight = new CANSparkMax(Drive.FRNT_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
+    backRight = new CANSparkMax(Drive.BCK_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
     rightMotors = new SpeedControllerGroup(frontRight, backRight);
 
     rightEncoder = frontRight.getEncoder();
@@ -70,9 +89,39 @@ public class DriveSystem extends SubsystemBase {
 
     drive = new DifferentialDrive(leftMotors, rightMotors);
 
-    navX = new AHRS();
+    // navX = new AHRS(); //RIP NavX
+    gyro = new ADXRS450_Gyro(SPI.Port.kMXP);
+    gyro.calibrate();
 
-    odometer = new DifferentialDriveOdometry(Rotation2d.fromDegrees(-navX.getAngle()), new Pose2d(Units.feetToMeters(42.4375), Units.feetToMeters(13.46875), Rotation2d.fromDegrees(0)));
+    odometer = new DifferentialDriveOdometry(Rotation2d.fromDegrees(-gyro.getAngle()),
+        new Pose2d(Units.feetToMeters(42.4375), Units.feetToMeters(13.46875), Rotation2d.fromDegrees(0)));
+    
+    gameField = new Field2d();
+
+    if (!Robot.isReal()) {
+      leftMotorVolts = 0;
+      rightMotorVolts = 0;
+
+      driveSim = new DifferentialDrivetrainSim(DCMotor.getNEO(2), 8.45,
+          (12.5 / 2.2 * Math.pow(Units.inchesToMeters(10), 2))
+              + (2.8 /* CIM motor */ * 2 / 2.2 + 2.0 /* Toughbox Mini- ish */)
+                  * Math.pow(Units.inchesToMeters(26.0 / 2.0), 2),
+          2.6605493765160295, Units.inchesToMeters(3), Units.inchesToMeters(26), null// VecBuilder.fill(0.001,
+                                                                                                                     // 0.001,
+                                                                                                                     // 0.001,
+                                                                                                                     // 0.1,
+                                                                                                                     // 0.1,
+                                                                                                                     // 0.005,
+                                                                                                                     // 0.005)
+      );
+
+      frontLeftSim = new CANSparkMaxSim(Drive.FRNT_LFT);
+      frontRightSim = new CANSparkMaxSim(Drive.FRNT_RT);
+
+      navXSim = new ADXRS450_GyroSim(gyro);
+
+      register();
+    }
   }
 
   private double getLeftDistance() {
@@ -91,18 +140,25 @@ public class DriveSystem extends SubsystemBase {
     leftEncoder.setPosition(0);
     rightEncoder.setPosition(0);
     
-    odometer.resetPosition(new Pose2d( Units.feetToMeters(42.4375), Units.feetToMeters(getStartingYCoordinateFeet()), Rotation2d.fromDegrees(0)), Rotation2d.fromDegrees(-navX.getAngle()));
+    odometer.resetPosition(new Pose2d( Units.feetToMeters(42.4375), Units.feetToMeters(getStartingYCoordinateFeet()), Rotation2d.fromDegrees(-180)), Rotation2d.fromDegrees(-gyro.getAngle()));
   }
 
   public void drive(double ySpeed, double rotation) {
     drive.arcadeDrive(ySpeed, rotation, true);
   }
 
+  public void setPose(Pose2d pose) {
+    leftEncoder.setPosition(0);
+    rightEncoder.setPosition(0);
+
+    odometer.resetPosition(pose, gyro.getRotation2d());
+  }
+
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
 
-    robotPosition = odometer.update(Rotation2d.fromDegrees(-navX.getAngle()), getLeftDistance(), getRightDistance());
+    robotPosition = odometer.update(Rotation2d.fromDegrees(-gyro.getAngle()), getLeftDistance(), getRightDistance());
 
     SmartDashboard.putNumber("Left Encoder Distance m", getLeftDistance());
     SmartDashboard.putNumber("Right Encoder Distance m", getRightDistance());
@@ -113,5 +169,21 @@ public class DriveSystem extends SubsystemBase {
 
   public Pose2d getRobotPosition() {
     return robotPosition;
+  }
+
+  @Override
+  public void simulationPeriodic() {
+
+    driveSim.setInputs(leftMotorVolts, rightMotorVolts);
+
+    driveSim.update(0.02);
+
+    // frontLeftSim.setPosition(driveSim.getLeftPositionMeters());
+    // frontRightSim.setPosition(-driveSim.getRightPositionMeters());
+
+    // frontLeftSim.setVelocity(driveSim.getLeftVelocityMetersPerSecond());
+    // frontRightSim.setVelocity(-driveSim.getRightVelocityMetersPerSecond());
+
+    navXSim.setAngle(driveSim.getHeading().getDegrees());
   }
 }

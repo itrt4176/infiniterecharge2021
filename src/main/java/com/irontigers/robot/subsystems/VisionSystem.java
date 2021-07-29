@@ -14,13 +14,13 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import static com.irontigers.robot.Constants.VISION;
 
-import com.irontigers.robot.LedController;
+// import com.irontigers.robot.LedController;
 
 import static com.irontigers.robot.Constants.GameField;
 
 public class VisionSystem extends SubsystemBase {
   private NetworkTable limelight;
-  private LedController ledRing;
+  // private LedController ledRing;
 
   private Boolean seesTarget = false;
   private double xAngle;
@@ -32,7 +32,7 @@ public class VisionSystem extends SubsystemBase {
    */
   public VisionSystem() {
     limelight = NetworkTableInstance.getDefault().getTable("limelight");
-    ledRing = new LedController(1);
+    // ledRing = new LedController(1);
     enableLeds();
   }
 
@@ -54,12 +54,12 @@ public class VisionSystem extends SubsystemBase {
 
   public void enableLeds() {
     limelight.getEntry("ledMode").setNumber(3);
-    ledRing.enableLeds();
+    // ledRing.enableLeds();
   }
 
   public void disableLeds() {
     limelight.getEntry("ledMode").setNumber(1);
-    ledRing.disableLeds();
+    // ledRing.disableLeds();
   }
 
   public void setToDriving() {
