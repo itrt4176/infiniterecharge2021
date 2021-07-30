@@ -30,8 +30,8 @@ public final class Constants {
     }
 
     public static final class Shooter {
-        public static final int FLYWHEEL_ADDR = 1;
-        public static final int TURRET_ADDR = 2;
+        public static final int FLYWHEEL_ADDR = 8;
+        public static final int TURRET_ADDR = 9;
 
         public static final double DEFUALT_SHOOTER_SPD = 1;
         public static final double DEFAULT_TURRET_SPD = 0.05;

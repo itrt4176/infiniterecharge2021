@@ -79,6 +79,7 @@ public class DriveSystem extends SubsystemBase {
 
     leftEncoder = frontLeft.getEncoder();
     leftEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
+    leftEncoder.setVelocityConversionFactor(Drive.ENC_CNV_FCTR / 60);
 
     frontRight = new CANSparkMax(Drive.FRNT_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
     backRight = new CANSparkMax(Drive.BCK_RT, CANSparkMaxLowLevel.MotorType.kBrushless);
@@ -86,6 +87,7 @@ public class DriveSystem extends SubsystemBase {
 
     rightEncoder = frontRight.getEncoder();
     rightEncoder.setPositionConversionFactor(Drive.ENC_CNV_FCTR);
+    rightEncoder.setVelocityConversionFactor(Drive.ENC_CNV_FCTR / 60);
 
     drive = new DifferentialDrive(leftMotors, rightMotors);
 
@@ -133,7 +135,8 @@ public class DriveSystem extends SubsystemBase {
   }
 
   private double getStartingYCoordinateFeet() {
-    return yOffset.getDouble(13.46875*12) / 12;
+    // return yOffset.getDouble(13.46875*12) / 12;
+    return 13.46875;
 
   }
   public void initStartingPose() {

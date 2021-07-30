@@ -128,9 +128,31 @@ public class RobotContainer {
 
     ShuffleboardLayout autoSettings = dash.getTab(TAB.SETUP)
         .getLayout("Autonomous Settings", BuiltInLayouts.kGrid)
-        .withSize(4, 2)
+        .withSize(4, 1)
         .withPosition(0, 0)
-        .withProperties(Map.of("Number of columns", 1, "Number of rows", 2, "Label position", "LEFT"));
+        .withProperties(Map.of("Number of columns", 1, "Number of rows", 1, "Label position", "LEFT"));
+
+    InstantCommand calibrate = new InstantCommand() {
+      @Override
+      public void initialize() {
+        visionSystem.setToVision();
+      }
+
+      @Override
+      public String getName() {
+        return "Calibrate Vision";
+      }
+
+      @Override
+          public boolean runsWhenDisabled() {
+              return true;
+          }
+    };
+
+    dash.getTab(TAB.SETUP)
+        .add(calibrate)
+        .withSize(4, 1)
+        .withPosition(0, 1);
 
     
     ballPreload.setDefaultOption("3", 3);
@@ -181,9 +203,10 @@ public class RobotContainer {
     magSystem.setStoredBalls(ballPreload.getSelected());
 
     return new SequentialCommandGroup(
-      new InstantCommand(visionSystem::setToVision),
+        new InstantCommand(visionSystem::setToVision),
+        new InstantCommand(visionSystem::enableLeds),
       new InstantCommand(magSystem::closeGate), new AutonomousDrive(driveSystem),
-        new InstantCommand(visionSystem::enableLeds), new WaitUntilCommand(visionSystem::seesTarget),
+      new WaitUntilCommand(visionSystem::seesTarget),
         new VisionAim(shooterSystem, visionSystem), getShootAllCommand(), new InstantCommand(visionSystem::disableLeds),
         new InstantCommand(visionSystem::setToDriving)).andThen(() -> {
           magSystem.setStoredBalls(0);

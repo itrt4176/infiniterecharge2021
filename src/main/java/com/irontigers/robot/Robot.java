@@ -66,11 +66,13 @@ public class Robot extends TimedRobot {
     CommandScheduler.getInstance().cancelAll();
     Shuffleboard.stopRecording();
     dash.setActiveTab(Dashboard.TAB.SETUP);
+
+    m_robotContainer.getVisionSystem().setToDriving();
   }
 
   @Override
   public void disabledPeriodic() {
-    m_robotContainer.getVisionSystem().setToDriving();
+    
   }
 
   /**

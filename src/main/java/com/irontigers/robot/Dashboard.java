@@ -3,6 +3,8 @@ package com.irontigers.robot;
 import java.util.Map;
 
 import edu.wpi.cscore.HttpCamera;
+import edu.wpi.cscore.VideoSource;
+import edu.wpi.cscore.HttpCamera.HttpCameraKind;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 
@@ -29,7 +31,7 @@ public class Dashboard {
     // private ShuffleboardTab debugTab;
 
     private Dashboard() {
-        HttpCamera stream = new HttpCamera("Camera", "http://10.41.76.11:5800");
+        VideoSource stream = new HttpCamera("Camera", "http://10.41.76.47:5800", HttpCameraKind.kMJPGStreamer);
 
         setupTab = Shuffleboard.getTab(TAB.SETUP.getName());
         setupTab.add(stream)
