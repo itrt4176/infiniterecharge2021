@@ -203,14 +203,11 @@ public class RobotContainer {
     magSystem.setStoredBalls(ballPreload.getSelected());
 
     return new SequentialCommandGroup(
-        new InstantCommand(visionSystem::setToVision),
-        new InstantCommand(visionSystem::enableLeds),
+      new InstantCommand(visionSystem::setToVision),
       new InstantCommand(magSystem::closeGate), new AutonomousDrive(driveSystem),
-      new WaitUntilCommand(visionSystem::seesTarget),
+        new InstantCommand(visionSystem::enableLeds), new WaitUntilCommand(visionSystem::seesTarget),
         new VisionAim(shooterSystem, visionSystem), getShootAllCommand(), new InstantCommand(visionSystem::disableLeds),
-        new InstantCommand(visionSystem::setToDriving)).andThen(() -> {
-          magSystem.setStoredBalls(0);
-        }, magSystem);
+        new InstantCommand(visionSystem::setToDriving));
   }
 
   public void initTesting() {

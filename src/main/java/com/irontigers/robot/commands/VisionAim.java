@@ -42,12 +42,14 @@ public class VisionAim extends CommandBase {
 
   @Override
   public void initialize() {
+    // visionSys.enableLeds();
+    visionSys.setToVision();
     targetDetected = visionSys.seesTarget();
     setpoint = shooterSys.getTurretAngle() + visionSys.getXAngle();
     turnTurret = true;
-    Dashboard.getInstance().getTab(TAB.TELEOP).addBoolean("Aiming", () -> {
-      return true;
-    }).withWidget(BuiltInWidgets.kBooleanBox).withPosition(2, 3).withSize(1, 1);
+    // Dashboard.getInstance().getTab(TAB.TELEOP).addBoolean("Aiming", () -> {
+    //   return true;
+    // }).withWidget(BuiltInWidgets.kBooleanBox).withPosition(2, 3).withSize(1, 1);
   }
 
   // Called every time the scheduler runs while the command is scheduled.
@@ -78,9 +80,9 @@ public class VisionAim extends CommandBase {
   public void end(boolean interrupted) {
     shooterSys.stopTurret();
 
-    Dashboard.getInstance().getTab(TAB.TELEOP).addBoolean("Aiming", () -> {
-      return false;
-    }).withWidget(BuiltInWidgets.kBooleanBox).withPosition(2, 3).withSize(1, 1);
+    // Dashboard.getInstance().getTab(TAB.TELEOP).addBoolean("Aiming", () -> {
+    //   return false;
+    // }).withWidget(BuiltInWidgets.kBooleanBox).withPosition(2, 3).withSize(1, 1);
   }
 
   // Returns true when the command should end.

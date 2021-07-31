@@ -27,7 +27,8 @@
                 "linuxaarch64bionic",
                 "linuxx86-64",
                 "linuxathena",
-                "linuxraspbian"
+                "linuxraspbian",
+                "osxx86-64"
             ]
         }
     ],
@@ -46,7 +47,8 @@
                 "linuxaarch64bionic",
                 "linuxx86-64",
                 "linuxathena",
-                "linuxraspbian"
+                "linuxraspbian",
+                "osxx86-64"
             ]
         },
         {
@@ -63,7 +65,8 @@
                 "linuxaarch64bionic",
                 "linuxx86-64",
                 "linuxathena",
-                "linuxraspbian"
+                "linuxraspbian",
+                "osxx86-64"
             ]
         }
     ]

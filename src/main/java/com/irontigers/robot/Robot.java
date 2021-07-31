@@ -63,7 +63,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void disabledInit() {
-    CommandScheduler.getInstance().cancelAll();
+    // CommandScheduler.getInstance().cancelAll();
     Shuffleboard.stopRecording();
     dash.setActiveTab(Dashboard.TAB.SETUP);
 

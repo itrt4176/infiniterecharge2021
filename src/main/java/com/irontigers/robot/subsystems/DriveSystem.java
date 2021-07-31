@@ -143,7 +143,7 @@ public class DriveSystem extends SubsystemBase {
     leftEncoder.setPosition(0);
     rightEncoder.setPosition(0);
     
-    odometer.resetPosition(new Pose2d( Units.feetToMeters(42.4375), Units.feetToMeters(getStartingYCoordinateFeet()), Rotation2d.fromDegrees(-180)), Rotation2d.fromDegrees(-gyro.getAngle()));
+    odometer.resetPosition(new Pose2d( Units.feetToMeters(42.4375), Units.feetToMeters(getStartingYCoordinateFeet()), Rotation2d.fromDegrees(0)), Rotation2d.fromDegrees(-gyro.getAngle()));
   }
 
   public void drive(double ySpeed, double rotation) {

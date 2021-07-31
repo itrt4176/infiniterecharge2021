@@ -50,7 +50,7 @@ public class AutonomousDrive extends CommandBase {
   public void execute() {
     currentPos = driveSys.getRobotPosition();
     distanceError = currentPos.relativeTo(endPos).getTranslation().getX();
-    driveSys.drive(-0.3, 0);
+    driveSys.drive(-0.5, 0);
     SmartDashboard.putNumber("Auto dist error", distanceError);
   }
 
